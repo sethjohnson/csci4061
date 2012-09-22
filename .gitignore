@@ -10,3 +10,9 @@
 *.lai
 *.la
 *.a
+
+# Xcode files
+*.xcodeproj
+*.1
+# Emacs
+*~
