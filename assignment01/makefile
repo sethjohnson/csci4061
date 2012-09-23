@@ -9,7 +9,7 @@ EXECNAME = graphexec
 all: $(OBJS)
 	$(CC) $(LFLAGS) $(OBJS) -o $(EXECNAME)
 
-main.o : main.cpp
+main.o : main.c
 	$(CC) $(CFLAGS) main.c
 
 clean: 
