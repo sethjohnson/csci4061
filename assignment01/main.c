@@ -51,8 +51,11 @@ int extract_children(const char * child_string, int * children)
 	while (next_substring && child_index < MAX_CHILDREN_COUNT)
 	{
 		substring_start = strsep(&next_substring, " ");
-		printf("Substring: %s\n",substring_start);
-		if(((child = atoi(substring_start))) || substring_start[0] == '0')
+		
+		// If substring_start contains non- numericgarbage, atoi will return 0 (false).
+		if(((child = atoi(substring_start))) 
+		   || substring_start[0] == '0') // But if substring_start actually contains the value 0, we want to use the value 0.
+			
 			children[child_index++] = child;
 		substring_start = next_substring;
 	}
