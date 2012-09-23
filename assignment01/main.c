@@ -16,7 +16,8 @@
 #define MAX_LINE_SIZE 512
 #define MAX_LINE_COUNT 64
 #define PARAMETERS_PER_LINE 4
-
+#define MAX_PARAMETER_LENGTH 1024
+#define MAX_CHILDREN_COUNT 10
 
 //for ’status’ variable:
 #define INELIGIBLE 0
@@ -26,10 +27,10 @@
 
 typedef struct node {
 	int id; // corresponds to line number in graph text file
-	char prog[1024]; // prog + arguments
-	char input[1024]; // filename
-	char output[1024]; // filename
-	int children[10]; // children IDs
+	char prog[MAX_PARAMETER_LENGTH]; // prog + arguments
+	char input[MAX_PARAMETER_LENGTH]; // filename
+	char output[MAX_PARAMETER_LENGTH]; // filename
+	int children[MAX_CHILDREN_COUNT]; // children IDs
 	int num_children; // how many children this node has
 	pid_t pid; // track it when it’s running
 } node_t;

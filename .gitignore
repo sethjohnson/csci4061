@@ -11,6 +11,8 @@
 *.la
 *.a
 
+# OSX
+*.DS_Store
 # Xcode files
 *.xcodeproj
 *.1
