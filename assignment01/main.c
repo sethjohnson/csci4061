@@ -10,7 +10,29 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define MAX_FILENAME_SIZE 200
+#include <stdbool.h>
+
+#define MAX_FILENAME_SIZE 256
+#define MAX_LINE_SIZE 512
+#define MAX_LINE_COUNT 64
+#define PARAMETERS_PER_LINE 4
+
+
+//for ’status’ variable:
+#define INELIGIBLE 0
+#define READY 1
+#define RUNNING 2
+#define FINISHED 3
+
+typedef struct node {
+	int id; // corresponds to line number in graph text file
+	char prog[1024]; // prog + arguments
+	char input[1024]; // filename
+	char output[1024]; // filename
+	int children[10]; // children IDs
+	int num_children; // how many children this node has
+	pid_t pid; // track it when it’s running
+} node_t;
 
 enum  {
 	EXIT_STATUS_BAD_INPUT
