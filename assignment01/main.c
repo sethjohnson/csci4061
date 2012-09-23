@@ -42,15 +42,17 @@ enum  {
 int extract_children(const char * child_string, int * children)
 {
 	
-	const char * substring_start;
-	char * next_substring;
-	char* child_string_temp = strdup(child_string);
+	char * const child_string_temp = strdup(child_string);
+	assert(child_string_temp);
+	char * substring_start;
+	char * next_substring  = child_string_temp;
 	int child;
 	int child_index = 0;
-	while (substring_start && child_index < MAX_CHILDREN_COUNT)
+	while (next_substring && child_index < MAX_CHILDREN_COUNT)
 	{
-		next_substring = strsep(&child_string_temp, " ");
-		if((child = atoi(substring_start)) || substring_start[0] == '0')
+		substring_start = strsep(&next_substring, " ");
+		printf("Substring: %s\n",substring_start);
+		if(((child = atoi(substring_start))) || substring_start[0] == '0')
 			children[child_index++] = child;
 		substring_start = next_substring;
 	}
@@ -93,7 +95,7 @@ node_t * construct_node(const char * line, int line_number)
 	
 	if (substring_index == 4) // The appropriate number of parameters were read
 	{
-		result = malloc(sizeof(node_t));
+		result = (node_t*)malloc(sizeof(node_t));
 		result->id = line_number;
 		strcpy(result->prog, substrings[0]);
 		strcpy(result->input, substrings[2]);
@@ -108,34 +110,6 @@ node_t * construct_node(const char * line, int line_number)
 		
 }
 
-void parse_line(const char * line, const char seperator, char ** destination)
-{
-	char* end = strchr(line, seperator);
-	long len;
-	if (!end)
-	{
-		len = strlen(line);
-		if(strpbrk(line, "\n\r"))
-			len--; // remove race of line break
-
-		*destination = malloc(sizeof(char)*(len+1));
-		assert(*destination);
-		memcpy(*destination, line, len);
-		(*destination)[len] = '\0';
-	}
-	else
-	{
-		len = end-line;
-		*destination = malloc(sizeof(char)*(len+1));
-		assert(*destination);
-
-		memcpy(*destination, line, len);
-		(*destination)[len] = '\0';
-		parse_line(end+1, seperator, destination+1);
-
-	}
-	
-}
 
 int main(int argc, const char * argv[])
 {
@@ -162,14 +136,12 @@ int main(int argc, const char * argv[])
 	int line_number = 0;
 	while (fgets(line, MAX_LINE_SIZE, input_file)) {
 
-		char** parameters = calloc(MAX_LINE_COUNT, sizeof(char*));
 
-		parse_line(line, ':', parameters);
 		node_t * node = construct_node(line, line_number);
 		
 		printf("ID: %i\n", node->id);
 		printf("Command: %s\n",node->prog);
-		printf("Children:\n");
+		printf("Children [%i]:\n",node->num_children);
 		for (int i = 0; i < node->num_children; i++) {
 			printf("\t%i\n",node->children[i]);
 		}
