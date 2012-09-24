@@ -66,12 +66,12 @@ int extract_children(const char * child_string, int * children)
 
 node_t * construct_node(const char * line, int line_number)
 {
-	char substrings[4][1024];
+	char substrings[4][MAX_PARAMETER_LENGTH];
 	
 	node_t * result = NULL;
 	char seperator = ':';
 	long substring_length;
-	const char * substring_start = line;
+	const char * substring_start;
 	const char* substring_end;
 	int substring_index = 0;
 	bool proceed = true;
@@ -83,7 +83,7 @@ node_t * construct_node(const char * line, int line_number)
 		if (!substring_end)
 		{
 			substring_length = strlen(substring_start);
-			if(strpbrk(line, "\n\r"))
+			if(strpbrk(line, "\n\r")) // If the line ends in newline,
 				substring_length--; // remove trace of line break
 			proceed = false; // Don't look for another substring
 		}
