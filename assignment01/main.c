@@ -18,7 +18,8 @@
 #define PARAMETERS_PER_LINE 4
 #define MAX_PARAMETER_LENGTH 1024
 #define MAX_CHILDREN_COUNT 10
-
+#define MAX_PARENTS_COUNT 10
+#define MAX_NODES 50
 //for ’status’ variable:
 #define INELIGIBLE 0
 #define READY 1
@@ -32,9 +33,11 @@ typedef struct node {
 	char input[MAX_PARAMETER_LENGTH]; // filename
 	char output[MAX_PARAMETER_LENGTH]; // filename
 	int children[MAX_CHILDREN_COUNT]; // children IDs
+	int parents[MAX_PARENTS_COUNT];
 	int num_children; // how many children this node has
-	//parents and num parents
-	//status id ... 
+	int num_parents;//parents and num parents
+	int status;
+	int return_value; 
 	pid_t pid; // track it when it’s running
 } node_t;
 
@@ -119,6 +122,7 @@ node_t * construct_node(const char * line, int line_number)
 		strcpy(result->input, substrings[2]);
 		strcpy(result->output, substrings[3]);
 		result->num_children = extract_children(substrings[1], result->children);
+		
 
 
 	}
