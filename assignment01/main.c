@@ -3,8 +3,8 @@
 //  assignment01
 //
 //  Created by Seth Johnson and Michael Walton
-//
-
+//MICHAEL NOTES -- add array for node pointers(i.e - list of created nodes with fingerprint)
+//add parent index array
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -25,6 +25,7 @@
 #define RUNNING 2
 #define FINISHED 3
 
+
 typedef struct node {
 	int id; // corresponds to line number in graph text file
 	char prog[MAX_PARAMETER_LENGTH]; // prog + arguments
@@ -32,17 +33,31 @@ typedef struct node {
 	char output[MAX_PARAMETER_LENGTH]; // filename
 	int children[MAX_CHILDREN_COUNT]; // children IDs
 	int num_children; // how many children this node has
+	//parents and num parents
+	//status id ... 
 	pid_t pid; // track it when it’s running
 } node_t;
 
 enum  {
 	EXIT_STATUS_BAD_INPUT
 	};
+void print_node_info(node_t * node)
+{
+	        printf("ID: %i\n", node->id);//store all node info in an array
+                printf("Command: %s\n",node->prog);
+                printf("Children [%i]:\n",node->num_children);
+                for (int i = 0; i < node->num_children; i++) {
+                        printf("\t%i\n",node->children[i]);
+                }
+                printf("Input stream: %s\n",node->input);
+                printf("Output stream: %s\n",node->output);
+                printf("\n");
 
+}
 int extract_children(const char * child_string, int * children)
 {
 	
-	char * const child_string_temp = strdup(child_string);
+	char * const child_string_temp = strdup(child_string);//allocate space free later
 	assert(child_string_temp);
 	char * substring_start;
 	char * next_substring  = child_string_temp;
@@ -141,18 +156,9 @@ int main(int argc, const char * argv[])
 
 
 		node_t * node = construct_node(line, line_number);
-		
-		printf("ID: %i\n", node->id);
-		printf("Command: %s\n",node->prog);
-		printf("Children [%i]:\n",node->num_children);
-		for (int i = 0; i < node->num_children; i++) {
-			printf("\t%i\n",node->children[i]);
-		}
-		printf("Input stream: %s\n",node->input);
-		printf("Output stream: %s\n",node->output);
-		printf("\n");
+		print_node_info(node);//for testing remove later	
 		line_number++;
-
+		free(node);
 	}
 	
 	return 0;
