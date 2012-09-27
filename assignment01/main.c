@@ -121,21 +121,20 @@ node_t * construct_node(const char * line, int line_number)
 		strcpy(result->prog, substrings[0]);
 		strcpy(result->input, substrings[2]);
 		strcpy(result->output, substrings[3]);
-		result->num_children = extract_children(substrings[1], result->children);
-		
-
-
+		result->num_children = extract_children(substrings[1], result->children);	
 	}
 	return result;
 
-		
 		
 }
 
 
 int main(int argc, const char * argv[])
 {
+	int i;//for the free for loop
+
 	char input_file_name[MAX_FILENAME_SIZE];
+	node_t * node_array[50];//array to store address of nodes
 	
 	if (argc == 2)
 	{
@@ -160,11 +159,17 @@ int main(int argc, const char * argv[])
 
 
 		node_t * node = construct_node(line, line_number);
-		print_node_info(node);//for testing remove later	
+		node_array[line_number] = node;//node_array[] points to node	
 		line_number++;
-		free(node);
+		//free(node);//This is freeing node from memory I added for loop below to free(node)
 	}
+	printf("%s \n", node_array[0] ->prog);//testing that this works, remove later
 	
+	for(i = line_number; i >= 0; i--)//not 100% sure working getting a segmentation fault
+	{
+		free(node_array[i]);
+	}
+
 	return 0;
 }
 

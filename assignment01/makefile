@@ -13,7 +13,7 @@ main.o : main.c
 	$(CC) $(CFLAGS) main.c
 
 clean: 
-	\rm $(OBJS) $(EXECNAME)
+	\rm -f $(OBJS) $(EXECNAME)
 
 tar:
 	tar cfv assignment01.tar makefile $(SOURCES) $(HEADERS)
