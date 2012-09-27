@@ -42,7 +42,8 @@ typedef struct node {
 } node_t;
 
 enum  {
-	EXIT_STATUS_BAD_INPUT
+	EXIT_STATUS_BAD_INPUT,
+	EXIT_STATUS_BAD_NODE_DATA
 	};
 void print_node_info(node_t * node)
 {
@@ -117,11 +118,14 @@ node_t * construct_node(const char * line, int line_number)
 	if (substring_index == 4) // The appropriate number of parameters were read
 	{
 		result = (node_t*)malloc(sizeof(node_t));
-		result->id = line_number;
-		strcpy(result->prog, substrings[0]);
-		strcpy(result->input, substrings[2]);
-		strcpy(result->output, substrings[3]);
-		result->num_children = extract_children(substrings[1], result->children);	
+		if (result) // Verify that space was successfully allocated
+		{
+			result->id = line_number;
+			strcpy(result->prog, substrings[0]);
+			strcpy(result->input, substrings[2]);
+			strcpy(result->output, substrings[3]);
+			result->num_children = extract_children(substrings[1], result->children);
+		}
 	}
 	return result;
 
@@ -152,24 +156,41 @@ int main(int argc, const char * argv[])
 	if (!input_file) {
 		printf("The file %s does not exist or could not be opened.\n",input_file_name);
 	}
-
-	char line[MAX_LINE_SIZE];
-	int line_number = 0;
-	while (fgets(line, MAX_LINE_SIZE, input_file)) {
-
-
-		node_t * node = construct_node(line, line_number);
-		node_array[line_number] = node;//node_array[] points to node	
-		line_number++;
-		//free(node);//This is freeing node from memory I added for loop below to free(node)
-	}
-	printf("%s \n", node_array[0] ->prog);//testing that this works, remove later
-	
-	for(i = line_number; i >= 0; i--)//not 100% sure working getting a segmentation fault
+	else
 	{
-		free(node_array[i]);
-	}
+		
+		char line[MAX_LINE_SIZE];
+		int node_count = 0;
+		while (fgets(line, MAX_LINE_SIZE, input_file))
+		{
+			
+			
+			node_t * node = construct_node(line, node_count);
+			if (node)
+			{
+				node_array[node_count] = node;//node_array[] points to node
+				node_count++;
 
+			}
+			else // node is null
+			{
+				printf("Line [%d] did not produce a valid node.\n",node_count);
+				exit(EXIT_STATUS_BAD_NODE_DATA);
+			}
+		}
+		printf("%s \n", node_array[0] ->prog);//testing that this works, remove later
+		
+		
+		// House-keeping
+		for(i = node_count; i >= 0; i--)//not 100% sure working getting a segmentation fault
+		{
+			free(node_array[i]);
+		}
+		fclose(input_file);
+		
+
+	}
+	
 	return 0;
 }
 
