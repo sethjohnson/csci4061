@@ -34,9 +34,9 @@ typedef struct node {
 	char output[MAX_PARAMETER_LENGTH]; // filename
 	int children[MAX_CHILDREN_COUNT]; // children IDs
 	int parents[MAX_PARENTS_COUNT];
+	int status;
 	int num_children; // how many children this node has
 	int num_parents;//parents and num parents
-	int status;
 	int return_value; 
 	pid_t pid; // track it when it’s running
 } node_t;
@@ -45,19 +45,24 @@ enum  {
 	EXIT_STATUS_BAD_INPUT,
 	EXIT_STATUS_BAD_NODE_DATA
 	};
+
 void print_node_info(node_t * node)
 {
-	        printf("ID: %i\n", node->id);//store all node info in an array
-                printf("Command: %s\n",node->prog);
-                printf("Children [%i]:\n",node->num_children);
-                for (int i = 0; i < node->num_children; i++) {
-                        printf("\t%i\n",node->children[i]);
-                }
-                printf("Input stream: %s\n",node->input);
-                printf("Output stream: %s\n",node->output);
-                printf("\n");
+	printf("ID: %i\n", node->id);//store all node info in an array
+	printf("Command: %s\n",node->prog);
+	printf("%i Children:\n",node->num_children);
+	for (int i = 0; i < node->num_children; i++)
+			printf("\t%i\n",node->children[i]);
+	printf("%i Parents:\n",node->num_parents);
+
+	for (int j = 0; j < node->num_parents; j++)
+			printf("\t%i\n",node->parents[j]);
+	printf("Input stream: %s\n",node->input);
+	printf("Output stream: %s\n",node->output);
+	printf("\n");
 
 }
+
 int extract_children(const char * child_string, int * children)
 {
 	
@@ -132,6 +137,44 @@ node_t * construct_node(const char * line, int line_number)
 		
 }
 
+bool has_parent(node_t * node, int parent_id)
+{
+	int i;
+	int parent_count = node->num_parents;
+	bool found = false;
+	for (i = 0; i < parent_count && !found; i++)
+		found = (node->parents[i] == parent_id);
+	
+	return found;
+}
+
+void add_parent(node_t * node, int parent_id)
+{	
+	if (node->num_parents < MAX_PARENTS_COUNT && !has_parent(node, parent_id))
+		node->parents[node->num_parents++] = parent_id;
+}
+
+void link_parents(node_t * nodes[], int node_count)
+{
+	int parent_node_id;
+	int child_node_id_index;
+	int child_count;
+	node_t * temp_node;
+	for (parent_node_id = 0; parent_node_id < node_count; parent_node_id++)
+	{
+		printf("Evaluating node [%i]\n",parent_node_id);
+		
+		temp_node = nodes[parent_node_id];
+		child_count = temp_node->num_children;
+		printf("\thas %i children\n",child_count);
+		
+		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++)
+		{
+			int child_node_id = temp_node->children[child_node_id_index];
+			add_parent(nodes[child_node_id],parent_node_id);
+		}
+	}
+}
 
 int main(int argc, const char * argv[])
 {
@@ -177,6 +220,12 @@ int main(int argc, const char * argv[])
 				printf("Line [%d] did not produce a valid node.\n",node_count);
 				exit(EXIT_STATUS_BAD_NODE_DATA);
 			}
+		}
+		link_parents(node_array, node_count);
+		
+		
+		for (int j = 0; j < node_count; j++) {
+			print_node_info(node_array[j]);
 		}
 		printf("%s \n", node_array[0] ->prog);//testing that this works, remove later
 		
