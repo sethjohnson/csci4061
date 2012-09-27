@@ -9,6 +9,10 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <stdbool.h>
 
@@ -130,11 +134,31 @@ node_t * construct_node(const char * line, int line_number)
 			strcpy(result->input, substrings[2]);
 			strcpy(result->output, substrings[3]);
 			result->num_children = extract_children(substrings[1], result->children);
+			result->status = INELIGIBLE; // Assume ineligibility until verified
 		}
 	}
 	return result;
 
 		
+}
+
+bool update_node_elegibility(node_t * node_array[], node_t * node)
+{
+	bool eligible = true;
+	int parent_count = node->num_parents;
+	int i;
+	for (i = 0; i < parent_count && eligible; i++)
+	{
+		int parent_id = node->parents[i];
+		if (node_array[parent_id]->status != FINISHED) {
+			eligible = false;
+		}
+	}
+	
+	if (eligible) {
+		node->status = READY;
+	}
+	return eligible;
 }
 
 bool has_parent(node_t * node, int parent_id)
@@ -223,12 +247,44 @@ int main(int argc, const char * argv[])
 		}
 		link_parents(node_array, node_count);
 		
-		
-		for (int j = 0; j < node_count; j++) {
-			print_node_info(node_array[j]);
-		}
-		printf("%s \n", node_array[0] ->prog);//testing that this works, remove later
-		
+		bool all_finished = true;
+		do {
+			for (int j = 0; j < node_count; j++) {
+				if (node_array[j]->status != FINISHED) {
+					all_finished=false;
+					if (update_node_elegibility(node_array, node_array[j])) {
+						printf("Node %i: %s\n",j, node_array[j]->prog);
+						
+						char ** child_argv;
+						int child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
+						int input_fd = open(node_array[j]->input, O_RDONLY);
+						int output_fd = open(node_array[j]->output, O_WRONLY);
+						
+						if (dup2(output_fd, STDOUT_FILENO) == -1) {
+							perror("Failed to redirect stdout.\n");
+							exit(-1);
+						}
+						
+						if (dup2(input_fd, STDIN_FILENO) == -1) {
+							perror("Failed to redirect stdin.\n");
+							exit(-1);
+						}
+						
+						printf("Hello, world!");
+						
+						
+						
+						
+						
+						node_array[j]->status = FINISHED;
+					}
+				}
+
+				//print_node_info(node_array[j]);
+			}
+		} while (!all_finished);
+
+	
 		
 		// House-keeping
 		for(i = node_count; i >= 0; i--)//not 100% sure working getting a segmentation fault
