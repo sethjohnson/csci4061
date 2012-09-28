@@ -7,14 +7,14 @@
 //add parent index array
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
 #include <stdbool.h>
+
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_LINE_SIZE 512
@@ -29,6 +29,46 @@
 #define READY 1
 #define RUNNING 2
 #define FINISHED 3
+
+int makeargv(const char *s, const char *delimiters, char ***argvp) {
+	int error;
+	int i;
+	int numtokens;
+	const char *snew;
+	char *t;
+	
+	if ((s == NULL) || (delimiters == NULL) || (argvp == NULL)) {
+		errno = EINVAL;
+		return -1;
+	}
+	*argvp = NULL;
+	snew = s + strspn(s, delimiters);         /* snew is real start of string */
+	if ((t = malloc(strlen(snew) + 1)) == NULL)
+		return -1;
+	strcpy(t, snew);
+	numtokens = 0;
+	if (strtok(t, delimiters) != NULL)     /* count the number of tokens in s */
+		for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ;
+	
+	/* create argument array for ptrs to the tokens */
+	if ((*argvp = malloc((numtokens + 1)*sizeof(char *))) == NULL) {
+		error = errno;
+		free(t);
+		errno = error;
+		return -1;
+	}
+	/* insert pointers to tokens into the argument array */
+	if (numtokens == 0)
+		free(t);
+	else {
+		strcpy(t, snew);
+		**argvp = strtok(t, delimiters);
+		for (i = 1; i < numtokens; i++)
+			*((*argvp) + i) = strtok(NULL, delimiters);
+    }
+    *((*argvp) + numtokens) = NULL;             /* put in final NULL pointer */
+    return numtokens;
+}
 
 
 typedef struct node {
@@ -47,7 +87,8 @@ typedef struct node {
 
 enum  {
 	EXIT_STATUS_BAD_INPUT,
-	EXIT_STATUS_BAD_NODE_DATA
+	EXIT_STATUS_BAD_NODE_DATA, 
+	EXIT_STATUS_BAD_MEMORY_ALLOCATION
 	};
 
 void print_node_info(node_t * node)
@@ -71,7 +112,12 @@ int extract_children(const char * child_string, int * children)
 {
 	
 	char * const child_string_temp = strdup(child_string);//allocate space free later
-	assert(child_string_temp);
+	if (!child_string_temp)
+	{
+		perror("Failed to create copy of child substring.\n");
+		exit(EXIT_STATUS_BAD_MEMORY_ALLOCATION);
+
+	}
 	char * substring_start;
 	char * next_substring  = child_string_temp;
 	int child;
@@ -142,7 +188,7 @@ node_t * construct_node(const char * line, int line_number)
 		
 }
 
-bool update_node_elegibility(node_t * node_array[], node_t * node)
+bool determine_eligible(node_t * node_array[], node_t * node)
 {
 	bool eligible = true;
 	int parent_count = node->num_parents;
@@ -161,6 +207,8 @@ bool update_node_elegibility(node_t * node_array[], node_t * node)
 	return eligible;
 }
 
+// == Has Parent ? ==
+// Returns whether node has the node indicated by parent_id as a parent
 bool has_parent(node_t * node, int parent_id)
 {
 	int i;
@@ -172,12 +220,18 @@ bool has_parent(node_t * node, int parent_id)
 	return found;
 }
 
-void add_parent(node_t * node, int parent_id)
+// == Add Parent ==
+// Adds parent_id to the list of node's parents, up to max_parents, as long as
+// parent_id is not already in the list. 
+void add_parent(node_t * node, int parent_id, int max_parents)
 {	
-	if (node->num_parents < MAX_PARENTS_COUNT && !has_parent(node, parent_id))
+	if (node->num_parents < max_parents && !has_parent(node, parent_id))
 		node->parents[node->num_parents++] = parent_id;
 }
 
+// == Link Parents ==
+// This function takes an array of new nodes with unspecified parents and uses
+// the other nodes' given child info to establish links to parents. 
 void link_parents(node_t * nodes[], int node_count)
 {
 	int parent_node_id;
@@ -195,7 +249,47 @@ void link_parents(node_t * nodes[], int node_count)
 		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++)
 		{
 			int child_node_id = temp_node->children[child_node_id_index];
-			add_parent(nodes[child_node_id],parent_node_id);
+			add_parent(nodes[child_node_id],parent_node_id, MAX_PARENTS_COUNT);
+		}
+	}
+}
+
+// == File To Node Array ==
+// This function takes a file pointer and parses it for node data, contructs the
+// node structures, and adds them (if they are valid) to the node_array up to
+// max_nodes possible nodes.
+int file_to_node_array(FILE * input_file, node_t * node_array[], int max_nodes) {
+	char line[max_nodes];
+	int node_count = 0;
+	while (fgets(line, MAX_LINE_SIZE, input_file))
+	{
+		
+		
+		node_t * node = construct_node(line, node_count);
+		if (node)
+		{
+			node_array[node_count] = node;//node_array[] points to node
+			node_count++;
+			
+		}
+		else // node is null
+		{
+			printf("Line [%d] did not produce a valid node.\n",node_count);
+			exit(EXIT_STATUS_BAD_NODE_DATA);
+		}
+	}
+	link_parents(node_array, node_count);
+	return node_count; 
+}
+
+// == Free Node Array ==
+// This function takes the array of nodes and frees the allocated memory
+// for the node structures.
+void free_node_array(node_t * node_array[], int node_count) {
+	int i;
+	for(i = node_count; i >= 0; i--) {
+		if (node_array[i]) {
+			free(node_array[i]);
 		}
 	}
 }
@@ -226,37 +320,18 @@ int main(int argc, const char * argv[])
 	else
 	{
 		
-		char line[MAX_LINE_SIZE];
-		int node_count = 0;
-		while (fgets(line, MAX_LINE_SIZE, input_file))
-		{
-			
-			
-			node_t * node = construct_node(line, node_count);
-			if (node)
-			{
-				node_array[node_count] = node;//node_array[] points to node
-				node_count++;
-
-			}
-			else // node is null
-			{
-				printf("Line [%d] did not produce a valid node.\n",node_count);
-				exit(EXIT_STATUS_BAD_NODE_DATA);
-			}
-		}
-		link_parents(node_array, node_count);
+		int node_count = file_to_node_array(input_file,node_array,MAX_NODES);
 		
 		bool all_finished = true;
 		do {
 			for (int j = 0; j < node_count; j++) {
 				if (node_array[j]->status != FINISHED) {
 					all_finished=false;
-					if (update_node_elegibility(node_array, node_array[j])) {
+					if (determine_eligible(node_array, node_array[j])) {
 						printf("Node %i: %s\n",j, node_array[j]->prog);
 						
 						char ** child_argv;
-						int child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
+						//int child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
 						int input_fd = open(node_array[j]->input, O_RDONLY);
 						int output_fd = open(node_array[j]->output, O_WRONLY);
 						
@@ -283,14 +358,9 @@ int main(int argc, const char * argv[])
 				//print_node_info(node_array[j]);
 			}
 		} while (!all_finished);
-
-	
 		
 		// House-keeping
-		for(i = node_count; i >= 0; i--)//not 100% sure working getting a segmentation fault
-		{
-			free(node_array[i]);
-		}
+		free_node_array(node_array, node_count);
 		fclose(input_file);
 		
 
