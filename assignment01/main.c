@@ -90,7 +90,8 @@ enum  {
 	EXIT_STATUS_BAD_NODE_DATA, 
 	EXIT_STATUS_BAD_MEMORY_ALLOCATION,
 	EXIT_STATUS_COULD_NOT_OPEN_FILES,
-	EXIT_STATUS_COULD_NOT_REDIRECT_FILES
+	EXIT_STATUS_COULD_NOT_REDIRECT_FILES,
+	EXIT_STATUS_NODE_RETURNED_NONZERO
 	};
 
 void print_node_info(node_t * node)
@@ -293,11 +294,101 @@ void free_node_array(node_t * node_array[], int node_count) {
 	}
 }
 
+// == Run Node ==
+// 
+int run_node(node_t * node) {
+	char ** child_argv;
+	int child_argc;
+	int oldstdin, oldstdout;
+	int input_fd, output_fd;
+
+	fflush(stdout);
+	// ----- Store old input and output FD's -----
+	if ((oldstdin = dup(0)) == -1) { // Save current stdin
+		perror("Failed to back-up stdin:\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	if ((oldstdout = dup(1)) == -1) { // Save current stdout
+		perror("Failed to back-up stdout:\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	// -------------------------------------------
+	
+	
+	// ----- Open input and output FD's ----------
+	if ((input_fd= open(node->input, O_RDONLY | O_CREAT, 0644)) == -1) {
+		fprintf(stderr, "Failed to open node %d's input file %s:\n",
+				node->id, node->input);
+		perror(NULL);
+		exit(EXIT_STATUS_COULD_NOT_OPEN_FILES);
+	}
+	if ((output_fd = open(node->output, O_WRONLY | O_CREAT, 0644)) == -1) {
+		fprintf(stderr, "Failed to open node %d's output file %s:\n",
+				node->id, node->output);
+		perror(NULL);
+		exit(EXIT_STATUS_COULD_NOT_OPEN_FILES);
+	}
+	// --------------------------------------------
+
+	fflush(stdout);
+	// ----- Redirect input and output FD's -------
+	if (dup2(input_fd, STDIN_FILENO) == -1) {
+		perror("Failed to redirect stdin.\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	if (dup2(output_fd, STDOUT_FILENO) == -1) {
+		perror("Failed to redirect stdout.\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	// --------------------------------------------
+
+	
+	child_argc = makeargv(node->prog, " ", &child_argv);
+	printf("Node %i: %s\n",node->id, node->prog);
+	node->status = RUNNING;
+	
+	//----- Fork, exec, and wait ------------------
+	for (int k = 0; k < child_argc; k++) {
+		printf("\targv[%i]: %s \n",k,child_argv[k]);
+	}
+	fflush(stdout); // For testing, make sure that stuff gets sent to the file
+					// before redirecting back
+	// --------------------------------------------
+
+	freemakeargv(child_argv);
+	
+	node->return_value = 0;
+	node->status = FINISHED;
+
+	
+	// ----- Replace old input and output FD's ----
+
+	if (dup2(oldstdout, STDOUT_FILENO) == -1) {
+		perror("Failed to redirect stdout to original stdout.\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	if (dup2(oldstdin, STDIN_FILENO) == -1) {
+		perror("Failed to redirect stdin to original stdin.\n");
+		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+	}
+	// --------------------------------------------
+	
+	return node->return_value;
+}
+
+void update_graph_eligibility(node_t * node_array[], int node_count) {
+	int i;
+	for (i = 0; i < node_count; i++) {
+		determine_eligible(node_array, node_array[i]);
+	}
+}
+
 int main(int argc, const char * argv[])
 {
 	char input_file_name[MAX_FILENAME_SIZE];
 	node_t * node_array[50];//array to store address of nodes
-	int oldstdin, oldstdout;
+	FILE * input_file;
+	int node_count;
 	if (argc == 2)
 	{
 		// If there are 2 arguments, the second one will be the input file
@@ -310,14 +401,14 @@ int main(int argc, const char * argv[])
 		exit(EXIT_STATUS_BAD_INPUT);
 	}
 	
-	FILE* input_file = fopen(input_file_name, "r");
+	input_file = fopen(input_file_name, "r");
 	if (!input_file) {
 		printf("The file %s does not exist or could not be opened.\n",input_file_name);
 	}
 	else
 	{
 		
-		int node_count = file_to_node_array(input_file,node_array,MAX_NODES);
+		node_count = file_to_node_array(input_file,node_array,MAX_NODES);
 		
 		bool all_finished = true;
 		do {
@@ -325,59 +416,19 @@ int main(int argc, const char * argv[])
 			for (int j = 0; j < node_count; j++) {
 				if (node_array[j]->status != FINISHED) {
 					all_finished=false;
-					if (determine_eligible(node_array, node_array[j])) {
+					determine_eligible(node_array, node_array[j]);
+					
+					if (node_array[j]->status == READY) {
+						printf("Running node %i...",j);
 						
-						char ** child_argv;
-						int child_argc;
+						run_node(node_array[j]);
 						
-						if ((oldstdin = dup(0)) == -1) { // Save current stdin
-							perror("Failed to back-up stdin:\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						if (node_array[j]->return_value != 0) {
+							printf("Node returned %d, aborting graph.\n",node_array[j]->return_value);
+							exit(EXIT_STATUS_NODE_RETURNED_NONZERO);
 						}
-						if ((oldstdout = dup(1)) == -1) { // Save current stdout
-							perror("Failed to back-up stdout:\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
-						int input_fd;
-						if ((input_fd= open(node_array[j]->input, O_RDONLY | O_CREAT, 0644)) == -1) {
-							fprintf(stderr, "Failed to open node %d's input file %s:\n",node_array[j]->id, node_array[j]->input);
-							perror(NULL);
-							exit(EXIT_STATUS_COULD_NOT_OPEN_FILES);
-						}
-						int output_fd;
-						if ((output_fd = open(node_array[j]->output, O_WRONLY | O_CREAT, 0644)) == -1) {
-							fprintf(stderr, "Failed to open node %d's output file %s:\n",node_array[j]->id, node_array[j]->output);
-							perror(NULL);
-						}
-						
+						printf("Done!\n");
 
-						printf("Redirecting input and output for node %i...\n", j);
-						if (dup2(input_fd, STDIN_FILENO) == -1) {
-							perror("Failed to redirect stdin.\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
-						if (dup2(output_fd, STDOUT_FILENO) == -1) {
-							perror("Failed to redirect stdout.\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
-						
-						child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
-						printf("Node %i: %s\n",j, node_array[j]->prog);
-						for (int k = 0; k < child_argc; k++) {
-							printf("\targv[%i]: %s \n",k,child_argv[k]);
-						}
-						freemakeargv(child_argv);
-						if (dup2(oldstdout, STDOUT_FILENO) == -1) {
-							perror("Failed to redirect stdout to original stdout.\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
-						if (dup2(oldstdin, STDIN_FILENO) == -1) {
-							perror("Failed to redirect stdin to original stdin.\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
-						printf("Node %i has finished!\n", j);
-
-						node_array[j]->status = FINISHED;
 					}
 				}
 			}
