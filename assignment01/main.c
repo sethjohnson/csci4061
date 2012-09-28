@@ -196,16 +196,19 @@ bool determine_eligible(node_t * node_array[], node_t * node)
 	bool eligible = true;
 	int parent_count = node->num_parents;
 	int i;
-	for (i = 0; i < parent_count && eligible; i++)
-	{
-		int parent_id = node->parents[i];
-		if (node_array[parent_id]->status != FINISHED) {
-			eligible = false;
+	if (node->status == INELIGIBLE) { // only want to update if ineligible
+		for (i = 0; i < parent_count && eligible; i++)
+		{
+			int parent_id = node->parents[i];
+			if (node_array[parent_id]->status != FINISHED) {
+				eligible = false;
+			}
 		}
-	}
-	
-	if (eligible) {
-		node->status = READY;
+		
+		if (eligible) {
+			node->status = READY;
+		}
+		
 	}
 	return eligible;
 }
@@ -301,9 +304,12 @@ int run_node(node_t * node) {
 	int child_argc;
 	int oldstdin, oldstdout;
 	int input_fd, output_fd;
+	
+	int status;
+	pid_t child_pid;
 
-	fflush(stdout);
 	// ----- Store old input and output FD's -----
+	fflush(stdout);
 	if ((oldstdin = dup(0)) == -1) { // Save current stdin
 		perror("Failed to back-up stdin:\n");
 		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
@@ -330,8 +336,8 @@ int run_node(node_t * node) {
 	}
 	// --------------------------------------------
 
-	fflush(stdout);
 	// ----- Redirect input and output FD's -------
+	fflush(stdout);
 	if (dup2(input_fd, STDIN_FILENO) == -1) {
 		perror("Failed to redirect stdin.\n");
 		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
@@ -344,15 +350,16 @@ int run_node(node_t * node) {
 
 	
 	child_argc = makeargv(node->prog, " ", &child_argv);
-	printf("Node %i: %s\n",node->id, node->prog);
+	//printf("Node %i: %s\n",node->id, node->prog);
 	node->status = RUNNING;
 	
 	//----- Fork, exec, and wait ------------------
-	for (int k = 0; k < child_argc; k++) {
-		printf("\targv[%i]: %s \n",k,child_argv[k]);
+	child_pid = fork();
+	if (child_pid) {
+		wait(&status);
+	} else {
+		execvp(child_argv[0], &child_argv[0]);
 	}
-	fflush(stdout); // For testing, make sure that stuff gets sent to the file
-					// before redirecting back
 	// --------------------------------------------
 
 	freemakeargv(child_argv);
@@ -362,7 +369,7 @@ int run_node(node_t * node) {
 
 	
 	// ----- Replace old input and output FD's ----
-
+	fflush(stdout);
 	if (dup2(oldstdout, STDOUT_FILENO) == -1) {
 		perror("Failed to redirect stdout to original stdout.\n");
 		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
@@ -410,13 +417,18 @@ int main(int argc, const char * argv[])
 		
 		node_count = file_to_node_array(input_file,node_array,MAX_NODES);
 		
-		bool all_finished = true;
+		for (int i=0; i < node_count; i++) {
+			print_node_info(node_array[i]);
+		}
+		bool all_finished;
 		do {
 			all_finished = true;
+			update_graph_eligibility(node_array, node_count);
+			
 			for (int j = 0; j < node_count; j++) {
 				if (node_array[j]->status != FINISHED) {
 					all_finished=false;
-					determine_eligible(node_array, node_array[j]);
+					//determine_eligible(node_array, node_array[j]);
 					
 					if (node_array[j]->status == READY) {
 						printf("Running node %i...",j);
