@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdbool.h>
-
+#include "freemakeargv.c"
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_LINE_SIZE 512
@@ -295,8 +295,6 @@ void free_node_array(node_t * node_array[], int node_count) {
 
 int main(int argc, const char * argv[])
 {
-	int i;//for the free for loop
-
 	char input_file_name[MAX_FILENAME_SIZE];
 	node_t * node_array[50];//array to store address of nodes
 	int oldstdin, oldstdout;
@@ -364,12 +362,11 @@ int main(int argc, const char * argv[])
 						}
 						
 						child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
-						
 						printf("Node %i: %s\n",j, node_array[j]->prog);
 						for (int k = 0; k < child_argc; k++) {
 							printf("\targv[%i]: %s \n",k,child_argv[k]);
 						}
-
+						freemakeargv(child_argv);
 						if (dup2(oldstdout, STDOUT_FILENO) == -1) {
 							perror("Failed to redirect stdout to original stdout.\n");
 							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
