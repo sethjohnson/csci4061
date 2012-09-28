@@ -43,7 +43,7 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
 	}
 	*argvp = NULL;
 	snew = s + strspn(s, delimiters);         /* snew is real start of string */
-	if ((t = malloc(strlen(snew) + 1)) == NULL)
+	if ((t = (char*)malloc(strlen(snew) + 1)) == NULL)
 		return -1;
 	strcpy(t, snew);
 	numtokens = 0;
@@ -51,7 +51,7 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
 		for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ;
 	
 	/* create argument array for ptrs to the tokens */
-	if ((*argvp = malloc((numtokens + 1)*sizeof(char *))) == NULL) {
+	if ((*argvp = (char**)malloc((numtokens + 1)*sizeof(char *))) == NULL) {
 		error = errno;
 		free(t);
 		errno = error;
@@ -88,7 +88,9 @@ typedef struct node {
 enum  {
 	EXIT_STATUS_BAD_INPUT,
 	EXIT_STATUS_BAD_NODE_DATA, 
-	EXIT_STATUS_BAD_MEMORY_ALLOCATION
+	EXIT_STATUS_BAD_MEMORY_ALLOCATION,
+	EXIT_STATUS_COULD_NOT_OPEN_FILES,
+	EXIT_STATUS_COULD_NOT_REDIRECT_FILES
 	};
 
 void print_node_info(node_t * node)
@@ -239,12 +241,9 @@ void link_parents(node_t * nodes[], int node_count)
 	int child_count;
 	node_t * temp_node;
 	for (parent_node_id = 0; parent_node_id < node_count; parent_node_id++)
-	{
-		printf("Evaluating node [%i]\n",parent_node_id);
-		
+	{		
 		temp_node = nodes[parent_node_id];
 		child_count = temp_node->num_children;
-		printf("\thas %i children\n",child_count);
 		
 		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++)
 		{
@@ -300,7 +299,7 @@ int main(int argc, const char * argv[])
 
 	char input_file_name[MAX_FILENAME_SIZE];
 	node_t * node_array[50];//array to store address of nodes
-	
+	int oldstdin, oldstdout;
 	if (argc == 2)
 	{
 		// If there are 2 arguments, the second one will be the input file
@@ -324,38 +323,59 @@ int main(int argc, const char * argv[])
 		
 		bool all_finished = true;
 		do {
+			all_finished = true;
 			for (int j = 0; j < node_count; j++) {
 				if (node_array[j]->status != FINISHED) {
 					all_finished=false;
 					if (determine_eligible(node_array, node_array[j])) {
-						printf("Node %i: %s\n",j, node_array[j]->prog);
 						
 						char ** child_argv;
 						//int child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
-						int input_fd = open(node_array[j]->input, O_RDONLY);
-						int output_fd = open(node_array[j]->output, O_WRONLY);
+						
+						if ((oldstdin = dup(0)) == -1) { // Save current stdin
+							perror("Failed to back-up stdin:\n");
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						}
+						if ((oldstdout = dup(0)) == -1) { // Save current stdout
+							perror("Failed to back-up stdout:\n");
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						}
+						int input_fd = open(node_array[j]->input, O_RDONLY | O_CREAT, 0644);
+						if (input_fd == -1) {
+							fprintf(stderr, "Failed to open node %d's input file %s:\n",node_array[j]->id, node_array[j]->input);
+							perror(NULL);
+							exit(EXIT_STATUS_COULD_NOT_OPEN_FILES);
+						}
+						int output_fd = open(node_array[j]->output, O_WRONLY | O_CREAT, 0644);
+						if (output_fd == -1) {
+							fprintf(stderr, "Failed to open node %d's output file %s:\n",node_array[j]->id, node_array[j]->output);
+							perror(NULL);
+						}
 						
 						if (dup2(output_fd, STDOUT_FILENO) == -1) {
 							perror("Failed to redirect stdout.\n");
-							exit(-1);
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
 						
 						if (dup2(input_fd, STDIN_FILENO) == -1) {
 							perror("Failed to redirect stdin.\n");
-							exit(-1);
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
 						
-						printf("Hello, world!");
-						
-						
-						
-						
+						printf("Node %i: %s\n",j, node_array[j]->prog);
+
+						if (dup2(oldstdout, STDOUT_FILENO) == -1) {
+							perror("Failed to redirect stdout to original stdout.\n");
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						}
+						if (dup2(oldstdin, STDIN_FILENO) == -1) {
+							perror("Failed to redirect stdin to original stdin.\n");
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						}
 						
 						node_array[j]->status = FINISHED;
 					}
 				}
-
-				//print_node_info(node_array[j]);
 			}
 		} while (!all_finished);
 		
