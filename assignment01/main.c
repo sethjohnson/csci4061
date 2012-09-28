@@ -330,39 +330,45 @@ int main(int argc, const char * argv[])
 					if (determine_eligible(node_array, node_array[j])) {
 						
 						char ** child_argv;
-						//int child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
+						int child_argc;
 						
 						if ((oldstdin = dup(0)) == -1) { // Save current stdin
 							perror("Failed to back-up stdin:\n");
 							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
-						if ((oldstdout = dup(0)) == -1) { // Save current stdout
+						if ((oldstdout = dup(1)) == -1) { // Save current stdout
 							perror("Failed to back-up stdout:\n");
 							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
-						int input_fd = open(node_array[j]->input, O_RDONLY | O_CREAT, 0644);
-						if (input_fd == -1) {
+						int input_fd;
+						if ((input_fd= open(node_array[j]->input, O_RDONLY | O_CREAT, 0644)) == -1) {
 							fprintf(stderr, "Failed to open node %d's input file %s:\n",node_array[j]->id, node_array[j]->input);
 							perror(NULL);
 							exit(EXIT_STATUS_COULD_NOT_OPEN_FILES);
 						}
-						int output_fd = open(node_array[j]->output, O_WRONLY | O_CREAT, 0644);
-						if (output_fd == -1) {
+						int output_fd;
+						if ((output_fd = open(node_array[j]->output, O_WRONLY | O_CREAT, 0644)) == -1) {
 							fprintf(stderr, "Failed to open node %d's output file %s:\n",node_array[j]->id, node_array[j]->output);
 							perror(NULL);
 						}
 						
+
+						printf("Redirecting input and output for node %i...\n", j);
+						if (dup2(input_fd, STDIN_FILENO) == -1) {
+							perror("Failed to redirect stdin.\n");
+							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
+						}
 						if (dup2(output_fd, STDOUT_FILENO) == -1) {
 							perror("Failed to redirect stdout.\n");
 							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
 						
-						if (dup2(input_fd, STDIN_FILENO) == -1) {
-							perror("Failed to redirect stdin.\n");
-							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
-						}
+						child_argc = makeargv(node_array[j]->prog, " ", &child_argv);
 						
 						printf("Node %i: %s\n",j, node_array[j]->prog);
+						for (int k = 0; k < child_argc; k++) {
+							printf("\targv[%i]: %s \n",k,child_argv[k]);
+						}
 
 						if (dup2(oldstdout, STDOUT_FILENO) == -1) {
 							perror("Failed to redirect stdout to original stdout.\n");
@@ -372,7 +378,8 @@ int main(int argc, const char * argv[])
 							perror("Failed to redirect stdin to original stdin.\n");
 							exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 						}
-						
+						printf("Node %i has finished!\n", j);
+
 						node_array[j]->status = FINISHED;
 					}
 				}
