@@ -316,7 +316,7 @@ int run_node(node_t * node) {
 	node->status = RUNNING;
 	
 	//----- Fork, exec, and wait ------------------
-	child_pid = fork();
+	node->pid = child_pid = fork();
 	if (child_pid) {
 		wait(&status);
 	} else {
