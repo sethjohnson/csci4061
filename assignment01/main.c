@@ -14,7 +14,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+
 #include "freemakeargv.c"
+#include "makeargv.c"
+
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_LINE_SIZE 512
@@ -29,47 +32,6 @@
 #define READY 1
 #define RUNNING 2
 #define FINISHED 3
-
-int makeargv(const char *s, const char *delimiters, char ***argvp) {
-	int error;
-	int i;
-	int numtokens;
-	const char *snew;
-	char *t;
-	
-	if ((s == NULL) || (delimiters == NULL) || (argvp == NULL)) {
-		errno = EINVAL;
-		return -1;
-	}
-	*argvp = NULL;
-	snew = s + strspn(s, delimiters);         /* snew is real start of string */
-	if ((t = (char*)malloc(strlen(snew) + 1)) == NULL)
-		return -1;
-	strcpy(t, snew);
-	numtokens = 0;
-	if (strtok(t, delimiters) != NULL)     /* count the number of tokens in s */
-		for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ;
-	
-	/* create argument array for ptrs to the tokens */
-	if ((*argvp = (char**)malloc((numtokens + 1)*sizeof(char *))) == NULL) {
-		error = errno;
-		free(t);
-		errno = error;
-		return -1;
-	}
-	/* insert pointers to tokens into the argument array */
-	if (numtokens == 0)
-		free(t);
-	else {
-		strcpy(t, snew);
-		**argvp = strtok(t, delimiters);
-		for (i = 1; i < numtokens; i++)
-			*((*argvp) + i) = strtok(NULL, delimiters);
-    }
-    *((*argvp) + numtokens) = NULL;             /* put in final NULL pointer */
-    return numtokens;
-}
-
 
 typedef struct node {
 	int id; // corresponds to line number in graph text file
@@ -417,9 +379,6 @@ int main(int argc, const char * argv[])
 		
 		node_count = file_to_node_array(input_file,node_array,MAX_NODES);
 		
-		for (int i=0; i < node_count; i++) {
-			print_node_info(node_array[i]);
-		}
 		bool all_finished;
 		do {
 			all_finished = true;
