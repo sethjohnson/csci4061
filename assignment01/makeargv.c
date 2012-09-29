@@ -6,6 +6,9 @@
  *
  * Page 37
  * Taken from included CD-ROM
+ *
+ * Modified lines 31 and 39 to use casts
+ *
  */
 
 
@@ -26,7 +29,7 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
    }
    *argvp = NULL;                           
    snew = s + strspn(s, delimiters);         /* snew is real start of string */
-   if ((t = malloc(strlen(snew) + 1)) == NULL) 
+   if ((t = (char*)malloc(strlen(snew) + 1)) == NULL)
       return -1; 
    strcpy(t, snew);               
    numtokens = 0;
@@ -34,7 +37,7 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
       for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ; 
 
                              /* create argument array for ptrs to the tokens */
-   if ((*argvp = malloc((numtokens + 1)*sizeof(char *))) == NULL) {
+   if ((*argvp = (char**)malloc((numtokens + 1)*sizeof(char *))) == NULL) {
       error = errno;
       free(t);
       errno = error;
