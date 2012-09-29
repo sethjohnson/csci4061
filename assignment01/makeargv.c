@@ -1,3 +1,14 @@
+/*
+ * Cited from
+ * Unix Systems Programming:
+ * Communication, Concurrency, and Threads
+ * By Kay A. Robbins, Steven Robbins
+ *
+ * Page 37
+ * Taken from included CD-ROM
+ */
+
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
