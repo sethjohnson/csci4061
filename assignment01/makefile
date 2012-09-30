@@ -22,4 +22,4 @@ clean:
 	\rm -f $(OBJS) $(EXECNAME)
 
 tar:
-	tar cfv assignment01.tar makefile README $(SOURCES) $(HEADERS)
+	tar cfv assignment01.tar.gz makefile README $(SOURCES) $(HEADERS)
