@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <sys/wait.h>
 
 #include "freemakeargv.c"
 #include "makeargv.c"
@@ -58,10 +59,11 @@ enum  {
 
 void print_node_info(node_t * node)
 {
+	int i, j;
 	printf("ID: %i\n", node->id);//store all node info in an array
 	printf("Command: %s\n",node->prog);
 	printf("%i Children:\n",node->num_children);
-	for (int i = 0; i < node->num_children; i++)
+	for ( i = 0; i < node->num_children; i++)
 			printf("\t%i\n",node->children[i]);
 	printf("%i Parents:\n",node->num_parents);
 
@@ -358,6 +360,7 @@ int main(int argc, const char * argv[])
 	node_t * node_array[50];//array to store address of nodes
 	FILE * input_file;
 	int node_count;
+	int i;
 	if (argc == 2)
 	{
 		// If there are 2 arguments, the second one will be the input file
@@ -384,18 +387,18 @@ int main(int argc, const char * argv[])
 			all_finished = true;
 			update_graph_eligibility(node_array, node_count);
 			
-			for (int j = 0; j < node_count; j++) {
-				if (node_array[j]->status != FINISHED) {
+			for (i = 0; i < node_count; i++) {
+				if (node_array[i]->status != FINISHED) {
 					all_finished=false;
 					//determine_eligible(node_array, node_array[j]);
 					
-					if (node_array[j]->status == READY) {
-						printf("Running node %i...",j);
+					if (node_array[i]->status == READY) {
+						printf("Running node %i...",i);
 						
-						run_node(node_array[j]);
+						run_node(node_array[i]);
 						
-						if (node_array[j]->return_value != 0) {
-							printf("Node returned %d, aborting graph.\n",node_array[j]->return_value);
+						if (node_array[i]->return_value != 0) {
+							printf("Node returned %d, aborting graph.\n",node_array[i]->return_value);
 							exit(EXIT_STATUS_NODE_RETURNED_NONZERO);
 						}
 						printf("Done!\n");
