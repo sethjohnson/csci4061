@@ -272,7 +272,7 @@ int run_node(node_t * node) {
 	int oldstdin, oldstdout;
 	int input_fd, output_fd;
 	
-	int status = 0;
+	int status;
 	pid_t child_pid;
 
 	// ----- Store old input and output FD's -----
@@ -289,7 +289,7 @@ int run_node(node_t * node) {
 	
 	
 	// ----- Open input and output FD's ----------
-	if ((input_fd= open(node->input, O_RDONLY | O_CREAT, 0644)) == -1) {
+	if ((input_fd  = open(node->input, O_RDONLY | O_CREAT, 0644)) == -1) {
 		fprintf(stderr, "Failed to open node %d's input file %s:\n",
 				node->id, node->input);
 		perror(NULL);
@@ -317,7 +317,7 @@ int run_node(node_t * node) {
 
 	
 	child_argc = makeargv(node->prog, " ", &child_argv);
-	//printf("Node %i: %s\n",node->id, node->prog);
+
 	node->status = RUNNING;
 	
 	//----- Fork, exec, and wait ------------------
@@ -346,6 +346,15 @@ int run_node(node_t * node) {
 		exit(EXIT_STATUS_COULD_NOT_REDIRECT_FILES);
 	}
 	// --------------------------------------------
+	
+	if (close(input_fd))
+		perror("input_fd failed to close:");	
+	if (close(output_fd))
+		perror("output_fd failed to close:");
+	if (close(oldstdin))
+		perror("oldstdin failed to close:");
+	if (close(oldstdout))
+		perror("oldstdin failed to close:");
 	
 	return node->return_value;
 }
