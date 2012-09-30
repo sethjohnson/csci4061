@@ -1,20 +1,20 @@
 /* login: joh08230
  * date:  09/30/12
  * name:  Seth Johnson, Michael Walton
- * id:    4273042, id_for_second_name 
+ * id:    4273042, id_for_second_name
  */
 
 
 #include <stdio.h>
-#include <string.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <string.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "freemakeargv.c"
 #include "makeargv.c"
