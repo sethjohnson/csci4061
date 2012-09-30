@@ -67,7 +67,7 @@ void print_node_info(node_t * node)
 			printf("\t%i\n",node->children[i]);
 	printf("%i Parents:\n",node->num_parents);
 
-	for (int j = 0; j < node->num_parents; j++)
+	for (j = 0; j < node->num_parents; j++)
 			printf("\t%i\n",node->parents[j]);
 	printf("Input stream: %s\n",node->input);
 	printf("Output stream: %s\n",node->output);
