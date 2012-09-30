@@ -267,7 +267,7 @@ int run_node(node_t * node) {
 	int oldstdin, oldstdout;
 	int input_fd, output_fd;
 	
-	int status;
+	int status = 0;
 	pid_t child_pid;
 
 	// ----- Store old input and output FD's -----
@@ -326,7 +326,7 @@ int run_node(node_t * node) {
 
 	freemakeargv(child_argv);
 	
-	node->return_value = 0;
+	node->return_value = status;
 	node->status = FINISHED;
 
 	
