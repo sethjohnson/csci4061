@@ -1,7 +1,7 @@
 /* login: joh08230
  * date:  09/30/12
  * name:  Seth Johnson, Michael Walton
- * id:    4273042, id_for_second_name
+ * id:    4273042, 4192221 
  */
 
 
@@ -19,6 +19,13 @@
 #include "freemakeargv.c"
 #include "makeargv.c"
 
+// Used for exit() calls
+#define	EXIT_STATUS_BAD_INPUT -3
+#define	EXIT_STATUS_BAD_NODE_DATA -3
+#define	EXIT_STATUS_BAD_MEMORY_ALLOCATION -1
+#define	EXIT_STATUS_COULD_NOT_OPEN_FILES -2
+#define	EXIT_STATUS_COULD_NOT_REDIRECT_FILES -2
+#define	EXIT_STATUS_NODE_RETURNED_NONZERO -4
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_LINE_SIZE 512
@@ -37,6 +44,8 @@ enum {
 	FINISHED	
 };
 
+// Came from course document Assignment1.pdf,
+// modified to contain some additional attributes
 typedef struct node {
 	int id; // corresponds to line number in graph text file
 	char prog[MAX_PARAMETER_LENGTH]; // prog + arguments
@@ -52,33 +61,10 @@ typedef struct node {
 } node_t;
 
 
-#define	EXIT_STATUS_BAD_INPUT -3
-#define	EXIT_STATUS_BAD_NODE_DATA -3 
-#define	EXIT_STATUS_BAD_MEMORY_ALLOCATION -1
-#define	EXIT_STATUS_COULD_NOT_OPEN_FILES -2
-#define	EXIT_STATUS_COULD_NOT_REDIRECT_FILES -2
-#define	EXIT_STATUS_NODE_RETURNED_NONZERO -4
-
-
-void print_node_info(node_t * node)
-{
-	int i, j;
-	printf("ID: %i\n", node->id);//store all node info in an array
-	printf("Command: %s\n",node->prog);
-	printf("%i Children:\n",node->num_children);
-	for ( i = 0; i < node->num_children; i++)
-			printf("\t%i\n",node->children[i]);
-	printf("%i Parents:\n",node->num_parents);
-
-	for (j = 0; j < node->num_parents; j++)
-			printf("\t%i\n",node->parents[j]);
-	printf("Input stream: %s\n",node->input);
-	printf("Output stream: %s\n",node->output);
-	printf("\n");
-
-}
-
-int extract_children(const char * child_string, int * children)
+// == Extract Children ==
+// This function takes a string that contains space-delimited child-id's and fills
+// an allocated array of children up to a max number.
+int extract_children(const char * child_string, int * children, int max_children_count)
 {
 	
 	char * const child_string_temp = strdup(child_string);//allocate space free later
@@ -92,7 +78,7 @@ int extract_children(const char * child_string, int * children)
 	char * next_substring  = child_string_temp;
 	int child;
 	int child_index = 0;
-	while (next_substring && child_index < MAX_CHILDREN_COUNT)
+	while (next_substring && child_index < max_children_count)
 	{
 		substring_start = strsep(&next_substring, " ");
 		
@@ -108,6 +94,12 @@ int extract_children(const char * child_string, int * children)
 	return child_index;
 }
 
+
+// == Construct Node ==
+// This function takes a colen-delimited line from the input file and, if valid
+// data, allocates space for a node struct, popluates it with the data from the line,
+// and returns a pointer to the new node. The line number is also used to fill
+// the id parameter.
 node_t * construct_node(const char * line, int line_number)
 {
 	char substrings[4][MAX_PARAMETER_LENGTH];
@@ -149,7 +141,7 @@ node_t * construct_node(const char * line, int line_number)
 			strcpy(result->prog, substrings[0]);
 			strcpy(result->input, substrings[2]);
 			strcpy(result->output, substrings[3]);
-			result->num_children = extract_children(substrings[1], result->children);
+			result->num_children = extract_children(substrings[1], result->children, MAX_CHILDREN_COUNT);
 			result->status = INELIGIBLE; // Assume ineligibility until verified
 		}
 	}
@@ -158,6 +150,10 @@ node_t * construct_node(const char * line, int line_number)
 		
 }
 
+// == Determine Eligible ==
+// This function takes a node and node_array and checks a node's parents for
+// their status. If a node's dependencies have been fulfilled and it has not
+// yet been eligible, the node will be moved to READY state. Also returns 
 bool determine_eligible(node_t * node_array[], node_t * node)
 {
 	bool eligible = true;
@@ -265,7 +261,9 @@ void free_node_array(node_t * node_array[], int node_count) {
 }
 
 // == Run Node ==
-// 
+// This function takes a node, assuming it is eligible to run, and opens the
+// necessary files and makes the apppropriate dup/dup2 calls to direct input,
+// forks and execs the node process. Returns 
 int run_node(node_t * node) {
 	char ** child_argv;
 	int child_argc;
