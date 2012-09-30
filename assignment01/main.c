@@ -28,11 +28,14 @@
 #define MAX_CHILDREN_COUNT 10
 #define MAX_PARENTS_COUNT 10
 #define MAX_NODES 50
+
 //for ’status’ variable:
-#define INELIGIBLE 0
-#define READY 1
-#define RUNNING 2
-#define FINISHED 3
+enum {
+	INELIGIBLE,
+	READY,
+	RUNNING,
+	FINISHED	
+};
 
 typedef struct node {
 	int id; // corresponds to line number in graph text file
@@ -48,14 +51,14 @@ typedef struct node {
 	pid_t pid; // track it when it’s running
 } node_t;
 
-enum  {
-	EXIT_STATUS_BAD_INPUT,
-	EXIT_STATUS_BAD_NODE_DATA, 
-	EXIT_STATUS_BAD_MEMORY_ALLOCATION,
-	EXIT_STATUS_COULD_NOT_OPEN_FILES,
-	EXIT_STATUS_COULD_NOT_REDIRECT_FILES,
-	EXIT_STATUS_NODE_RETURNED_NONZERO
-	};
+
+#define	EXIT_STATUS_BAD_INPUT -3
+#define	EXIT_STATUS_BAD_NODE_DATA -3 
+#define	EXIT_STATUS_BAD_MEMORY_ALLOCATION -1
+#define	EXIT_STATUS_COULD_NOT_OPEN_FILES -2
+#define	EXIT_STATUS_COULD_NOT_REDIRECT_FILES -2
+#define	EXIT_STATUS_NODE_RETURNED_NONZERO -4
+
 
 void print_node_info(node_t * node)
 {
