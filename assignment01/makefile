@@ -8,7 +8,7 @@ OBJS = main.o
 CC = gcc
 CFLAGS = -Wall -c 
 LFLAGS = -Wall
-SOURCES = main.c
+SOURCES = main.c makeargv.c freemakeargv.c
 HEADERS = 
 EXECNAME = graphexec
 
@@ -22,4 +22,4 @@ clean:
 	\rm -f $(OBJS) $(EXECNAME)
 
 tar:
-	tar cfv assignment01.tar makefile $(SOURCES) $(HEADERS)
+	tar cfv assignment01.tar makefile README $(SOURCES) $(HEADERS)
