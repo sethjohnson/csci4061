@@ -113,9 +113,7 @@ int extract_children(const char * child_string, int * children, int max_children
 // and returns a pointer to the new node. The line number is also used to fill
 // the id parameter.
 node_t * construct_node(const char * line, int line_number)
-{
-	char substrings[4][MAX_PARAMETER_LENGTH];
-	
+{	
 	node_t * result = NULL;
 	int substring_count = 0;
 	char ** temp_parameter_strings;
