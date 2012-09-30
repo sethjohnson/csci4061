@@ -254,7 +254,7 @@ int file_to_node_array(FILE * input_file, node_t * node_array[], int max_nodes) 
 // for the node structures.
 void free_node_array(node_t * node_array[], int node_count) {
 	int i;
-	for(i = 0; i < node_count; i--) {
+	for(i = 0; i < node_count; i++) {
 		if (node_array[i]) {
 			free(node_array[i]);
 		}
