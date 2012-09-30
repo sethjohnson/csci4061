@@ -86,31 +86,23 @@ void print_node_info(node_t * node)
 // an allocated array of children up to a max number.
 int extract_children(const char * child_string, int * children, int max_children_count)
 {
-	
-	char * const child_string_temp = strdup(child_string);//allocate space free later
-	if (!child_string_temp)
-	{
-		perror("Failed to create copy of child substring.\n");
-		exit(EXIT_STATUS_BAD_MEMORY_ALLOCATION);
-
-	}
-	char * substring_start;
-	char * next_substring  = child_string_temp;
-	int child;
 	int child_index = 0;
-	while (next_substring && child_index < max_children_count)
-	{
-		substring_start = strsep(&next_substring, " ");
-		
-		// If substring_start contains non- numericgarbage, atoi will return 0 (false).
-		if(((child = atoi(substring_start))) 
-		   || substring_start[0] == '0') // But if substring_start actually contains the value 0, we want to use the value 0.
-			
-			children[child_index++] = child;
-		substring_start = next_substring;
-	}
+	char** temp_child_strings;
+	int child_count;
+	int child;
+	int i;
 
-	free(child_string_temp);
+	if (strcmp(child_string, "none") != 0) {
+		child_count = makeargv(child_string, " ", &temp_child_strings);
+		for (i = 0; i < child_count; i++) {
+			// If substring_start contains non-numeric garbage, atoi will return 0 (false).
+			// But if substring_start actually contains the value 0, we want to use the value 0.
+			if((child = atoi(temp_child_strings[i])) || (temp_child_strings[i][0] == '0')) 				
+				children[child_index++] = child;
+		}
+		freemakeargv(temp_child_strings);
+
+	}
 	return child_index;
 }
 
@@ -423,6 +415,7 @@ int main(int argc, const char * argv[])
 					//determine_eligible(node_array, node_array[j]);
 					
 					if (node_array[i]->status == READY) {
+						print_node_info(node_array[i]);
 						printf("Running node %i...",i);
 						
 						run_node(node_array[i]);
