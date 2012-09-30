@@ -1,3 +1,9 @@
+# login: joh08230
+# date:  09/30/12
+# name:  Seth Johnson, Michael Walton
+# id:    4273042, id_for_second_name 
+
+
 OBJS = main.o
 CC = gcc
 CFLAGS = -Wall -c 

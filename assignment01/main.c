@@ -1,10 +1,10 @@
-//
-//  main.c
-//  assignment01
-//
-//  Created by Seth Johnson and Michael Walton
-//MICHAEL NOTES -- add array for node pointers(i.e - list of created nodes with fingerprint)
-//add parent index array
+/* login: joh08230
+ * date:  09/30/12
+ * name:  Seth Johnson, Michael Walton
+ * id:    4273042, id_for_second_name 
+ */
+
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
