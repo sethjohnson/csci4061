@@ -60,6 +60,26 @@ typedef struct node {
 	pid_t pid; // track it when it’s running
 } node_t;
 
+// == Print Node Info ==
+// This function will print all the data stored in a node structure for debugging.
+void print_node_info(node_t * node)
+{
+	int i, j;
+	printf("ID: %i\n", node->id);//store all node info in an array
+	printf("Command: %s\n",node->prog);
+	printf("%i Children:\n",node->num_children);
+	for ( i = 0; i < node->num_children; i++)
+		printf("\t%i\n",node->children[i]);
+	printf("%i Parents:\n",node->num_parents);
+	
+	for (j = 0; j < node->num_parents; j++)
+		printf("\t%i\n",node->parents[j]);
+	printf("Input stream: %s\n",node->input);
+	printf("Output stream: %s\n",node->output);
+	printf("\n");
+	
+}
+
 
 // == Extract Children ==
 // This function takes a string that contains space-delimited child-id's and fills
