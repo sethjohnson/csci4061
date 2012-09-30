@@ -44,10 +44,10 @@ typedef struct node {
 	char output[MAX_PARAMETER_LENGTH]; // filename
 	int children[MAX_CHILDREN_COUNT]; // children IDs
 	int parents[MAX_PARENTS_COUNT];
-	int status;
+	int status; // track current status of node: specified in enum
 	int num_children; // how many children this node has
-	int num_parents;//parents and num parents
-	int return_value; 
+	int num_parents; //parents and num parents
+	int return_value; //track node's return value upon completion
 	pid_t pid; // track it when it’s running
 } node_t;
 
