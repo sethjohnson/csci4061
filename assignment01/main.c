@@ -117,46 +117,33 @@ node_t * construct_node(const char * line, int line_number)
 	char substrings[4][MAX_PARAMETER_LENGTH];
 	
 	node_t * result = NULL;
-	char seperator = ':';
-	long substring_length;
-	const char * substring_start;
-	const char* substring_end;
-	int substring_index = 0;
-	bool proceed = true;
-
-	substring_start = line;
-
-	do {
-		substring_end = strchr(substring_start, seperator);
-		if (!substring_end)
-		{
-			substring_length = strlen(substring_start);
-			if(strpbrk(line, "\n\r")) // If the line ends in newline,
-				substring_length--; // remove trace of line break
-			proceed = false; // Don't look for another substring
-		}
-		else
-			substring_length = substring_end - substring_start;
-		
-		memcpy(substrings[substring_index], substring_start, substring_length);
-		substrings[substring_index][substring_length] = '\0';
-		substring_index++;
-		substring_start = substring_end + 1;
-	} while (proceed);
+	int substring_count = 0;
+	char ** temp_parameter_strings;
+	int i;
+	char* new_line_location;
 	
-	if (substring_index == 4) // The appropriate number of parameters were read
+	substring_count = makeargv(line, ":", &temp_parameter_strings);
+	
+	for (i = 0; i < substring_count; i++) {
+		if((new_line_location = strpbrk(temp_parameter_strings[i], "\n\r"))) // If the line ends in newline,
+			*(new_line_location) = '\0'; // Cut it off!
+	}
+	
+	if (substring_count == 4) // The appropriate number of parameters were read
 	{
 		result = (node_t*)malloc(sizeof(node_t));
 		if (result) // Verify that space was successfully allocated
 		{
 			result->id = line_number;
-			strcpy(result->prog, substrings[0]);
-			strcpy(result->input, substrings[2]);
-			strcpy(result->output, substrings[3]);
-			result->num_children = extract_children(substrings[1], result->children, MAX_CHILDREN_COUNT);
+			strcpy(result->prog, temp_parameter_strings[0]);
+			strcpy(result->input, temp_parameter_strings[2]);
+			strcpy(result->output, temp_parameter_strings[3]);
+			result->num_children = extract_children(temp_parameter_strings[1], result->children, MAX_CHILDREN_COUNT);
 			result->status = INELIGIBLE; // Assume ineligibility until verified
 		}
 	}
+	
+	freemakeargv(temp_parameter_strings);
 	return result;
 
 		
@@ -369,6 +356,8 @@ int run_node(node_t * node) {
 	return node->return_value;
 }
 
+// == Update Graph Eligibility ==
+// Run through the whole graph and update all nodes whose parents have completed
 void update_graph_eligibility(node_t * node_array[], int node_count) {
 	int i;
 	for (i = 0; i < node_count; i++) {
