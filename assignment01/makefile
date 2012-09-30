@@ -1,5 +1,5 @@
 OBJS = main.o
-CC = g++
+CC = gcc
 CFLAGS = -Wall -c 
 LFLAGS = -Wall
 SOURCES = main.c
