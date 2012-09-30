@@ -1,7 +1,7 @@
 /* login: joh08230
  * date:  09/30/12
  * name:  Seth Johnson, Michael Walton
- * id:    4273042, id_for_second_name 
+ * id:    4273042, 4192221 
  */
 
 
@@ -31,7 +31,7 @@ make
 
 
 
--How to use Assignment 1 from the terminal ... the proper syntax to evoke the program.
+-How to use Assignment 1 from the terminal ... the proper syntax to evoke the program-
 
 while at the terminal prompt follow this syntax < ProgramName SomeFile.txt >
 
