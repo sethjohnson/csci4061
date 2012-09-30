@@ -62,8 +62,7 @@ typedef struct node {
 
 // == Print Node Info ==
 // This function will print all the data stored in a node structure for debugging.
-void print_node_info(node_t * node)
-{
+void print_node_info(node_t * node) {
 	int i, j;
 	printf("ID: %i\n", node->id);//store all node info in an array
 	printf("Command: %s\n",node->prog);
@@ -84,8 +83,7 @@ void print_node_info(node_t * node)
 // == Extract Children ==
 // This function takes a string that contains space-delimited child-id's and fills
 // an allocated array of children up to a max number.
-int extract_children(const char * child_string, int * children, int max_children_count)
-{
+int extract_children(const char * child_string, int * children, int max_children_count) {
 	int child_index = 0;
 	char** temp_child_strings;
 	int child_count;
@@ -112,8 +110,7 @@ int extract_children(const char * child_string, int * children, int max_children
 // data, allocates space for a node struct, popluates it with the data from the line,
 // and returns a pointer to the new node. The line number is also used to fill
 // the id parameter.
-node_t * construct_node(const char * line, int line_number)
-{	
+node_t * construct_node(const char * line, int line_number) {	
 	node_t * result = NULL;
 	int substring_count = 0;
 	char ** temp_parameter_strings;
@@ -127,11 +124,9 @@ node_t * construct_node(const char * line, int line_number)
 			*(new_line_location) = '\0'; // Cut it off!
 	}
 	
-	if (substring_count == 4) // The appropriate number of parameters were read
-	{
+	if (substring_count == 4) { // The appropriate number of parameters were read
 		result = (node_t*)malloc(sizeof(node_t));
-		if (result) // Verify that space was successfully allocated
-		{
+		if (result) { // Verify that space was successfully allocated
 			result->id = line_number;
 			strcpy(result->prog, temp_parameter_strings[0]);
 			strcpy(result->input, temp_parameter_strings[2]);
@@ -151,14 +146,12 @@ node_t * construct_node(const char * line, int line_number)
 // This function takes a node and node_array and checks a node's parents for
 // their status. If a node's dependencies have been fulfilled and it has not
 // yet been eligible, the node will be moved to READY state. Also returns 
-bool determine_eligible(node_t * node_array[], node_t * node)
-{
+bool determine_eligible(node_t * node_array[], node_t * node) {
 	bool eligible = true;
 	int parent_count = node->num_parents;
 	int i;
 	if (node->status == INELIGIBLE) { // only want to update if ineligible
-		for (i = 0; i < parent_count && eligible; i++)
-		{
+		for (i = 0; i < parent_count && eligible; i++) {
 			int parent_id = node->parents[i];
 			if (node_array[parent_id]->status != FINISHED) {
 				eligible = false;
@@ -175,8 +168,7 @@ bool determine_eligible(node_t * node_array[], node_t * node)
 
 // == Has Parent ? ==
 // Returns whether node has the node indicated by parent_id as a parent
-bool has_parent(node_t * node, int parent_id)
-{
+bool has_parent(node_t * node, int parent_id) {
 	int i;
 	int parent_count = node->num_parents;
 	bool found = false;
@@ -189,8 +181,7 @@ bool has_parent(node_t * node, int parent_id)
 // == Add Parent ==
 // Adds parent_id to the list of node's parents, up to max_parents, as long as
 // parent_id is not already in the list. 
-void add_parent(node_t * node, int parent_id, int max_parents)
-{	
+void add_parent(node_t * node, int parent_id, int max_parents) {	
 	if (node->num_parents < max_parents && !has_parent(node, parent_id))
 		node->parents[node->num_parents++] = parent_id;
 }
@@ -198,19 +189,16 @@ void add_parent(node_t * node, int parent_id, int max_parents)
 // == Link Parents ==
 // This function takes an array of new nodes with unspecified parents and uses
 // the other nodes' given child info to establish links to parents. 
-void link_parents(node_t * nodes[], int node_count)
-{
+void link_parents(node_t * nodes[], int node_count) {
 	int parent_node_id;
 	int child_node_id_index;
 	int child_count;
 	node_t * temp_node;
-	for (parent_node_id = 0; parent_node_id < node_count; parent_node_id++)
-	{		
+	for (parent_node_id = 0; parent_node_id < node_count; parent_node_id++) {
 		temp_node = nodes[parent_node_id];
 		child_count = temp_node->num_children;
 		
-		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++)
-		{
+		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++) {
 			int child_node_id = temp_node->children[child_node_id_index];
 			add_parent(nodes[child_node_id],parent_node_id, MAX_PARENTS_COUNT);
 		}
@@ -224,19 +212,15 @@ void link_parents(node_t * nodes[], int node_count)
 int file_to_node_array(FILE * input_file, node_t * node_array[], int max_nodes) {
 	char line[max_nodes];
 	int node_count = 0;
-	while (fgets(line, MAX_LINE_SIZE, input_file))
-	{
+	while (fgets(line, MAX_LINE_SIZE, input_file)) {
 		
 		
 		node_t * node = construct_node(line, node_count);
-		if (node)
-		{
+		if (node) {
 			node_array[node_count] = node;//node_array[] points to node
 			node_count++;
 			
-		}
-		else // node is null
-		{
+		} else { // node is null
 			printf("Line [%d] did not produce a valid node.\n",node_count);
 			exit(EXIT_STATUS_BAD_NODE_DATA);
 		}
@@ -363,20 +347,16 @@ void update_graph_eligibility(node_t * node_array[], int node_count) {
 	}
 }
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
 	char input_file_name[MAX_FILENAME_SIZE];
 	node_t * node_array[50];//array to store address of nodes
 	FILE * input_file;
 	int node_count;
 	int i;
-	if (argc == 2)
-	{
+	if (argc == 2) {
 		// If there are 2 arguments, the second one will be the input file
 		strcpy(input_file_name, argv[1]);
-	}
-	else
-	{
+	} else {
 		// If there are not 2 arguments, print usage message and exit
 		printf("usage: graphexec inputfile\n");
 		exit(EXIT_STATUS_BAD_INPUT);
@@ -385,9 +365,7 @@ int main(int argc, const char * argv[])
 	input_file = fopen(input_file_name, "r");
 	if (!input_file) {
 		printf("The file %s does not exist or could not be opened.\n",input_file_name);
-	}
-	else
-	{
+	} else {
 		
 		node_count = file_to_node_array(input_file,node_array,MAX_NODES);
 		
@@ -399,10 +377,8 @@ int main(int argc, const char * argv[])
 			for (i = 0; i < node_count; i++) {
 				if (node_array[i]->status != FINISHED) {
 					all_finished=false;
-					//determine_eligible(node_array, node_array[j]);
-					
 					if (node_array[i]->status == READY) {
-						print_node_info(node_array[i]);
+						//print_node_info(node_array[i]);
 						printf("Running node %i...",i);
 						
 						run_node(node_array[i]);
