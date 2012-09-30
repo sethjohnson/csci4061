@@ -193,14 +193,18 @@ void link_parents(node_t * nodes[], int node_count) {
 	int parent_node_id;
 	int child_node_id_index;
 	int child_count;
+	int child_node_id;
+	
 	node_t * temp_node;
 	for (parent_node_id = 0; parent_node_id < node_count; parent_node_id++) {
 		temp_node = nodes[parent_node_id];
 		child_count = temp_node->num_children;
 		
 		for (child_node_id_index=0; child_node_id_index < child_count; child_node_id_index++) {
-			int child_node_id = temp_node->children[child_node_id_index];
-			add_parent(nodes[child_node_id],parent_node_id, MAX_PARENTS_COUNT);
+			child_node_id = temp_node->children[child_node_id_index];
+			if (child_node_id < node_count) { // Don't somehow link a child that doesn't exist
+				add_parent(nodes[child_node_id],parent_node_id, MAX_PARENTS_COUNT);
+			}
 		}
 	}
 }
