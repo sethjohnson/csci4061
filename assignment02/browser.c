@@ -290,7 +290,10 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 
 int main()
 {
-
+	comm_channel c;
+	pipe(c.parent_to_child_fd);
+	pipe(c.child_to_parent_fd);
+	create_proc_for_new_tab(&c, 0, 1);
 
 	return 0;
 }
