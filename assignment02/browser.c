@@ -23,6 +23,7 @@ extern int errno;
  */
 void uri_entered_cb(GtkWidget* entry, gpointer data)
 {
+	printf("This is PID = %x entering uri_entered_cb: \n",getpid());
 
 	if(!data)
 		return;
@@ -38,7 +39,7 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 
 	// Get the URL.
 	char* uri = get_entered_uri(entry);
-
+	printf("Welcome to the URL %s!\n",uri);
 	// Prepare 'request' packet to send to router (/parent) process.
 	child_req_to_parent req;
 
@@ -209,7 +210,15 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 	// Create bi-directional pipes (hence 2 pipes) for 
 	// communication between the parent and child process.
 	// Remember to error check.
-
+	if (pipe(channel->parent_to_child_fd) == -1) {
+		perror("Could not open parent_to_child pipe:");
+		exit(-1);
+	}
+		
+	if (pipe(channel->child_to_parent_fd) == -1) {
+		perror("Could not open child_to_parent pipe:");
+		exit(-1);
+	}
 
 
 	// Create child process for managing the new tab; remember to check for errors!
@@ -291,8 +300,6 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 int main()
 {
 	comm_channel c;
-	pipe(c.parent_to_child_fd);
-	pipe(c.child_to_parent_fd);
 	create_proc_for_new_tab(&c, 0, 1);
 
 	return 0;
