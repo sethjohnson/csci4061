@@ -77,6 +77,8 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 int wait_for_browsing_req(int fds[2], browser_window *b_window)
 {
 
+	render_web_page_in_tab("http://www.google.com", b_window);
+	process_single_gtk_event();
 	// Close file descriptors we won't use
 
 
@@ -90,6 +92,7 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
 	// Continuous loop of checking requests and processing browser events
 	while(1)
 	{
+
 		usleep(5000);
 		// Alternatively read incoming requests from
 		// 'controller-tab' and process GTK+ events
@@ -184,6 +187,7 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cn
 						break;
 					case TAB_KILLED :
 						printf("Going for the kill on tab: %d\n", msg.req.killed_req.tab_index);
+
 						break;
 					default :
 						printf("Received a strange type.\n");
@@ -266,7 +270,7 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 
 	flags = fcntl (channel[tab_index].child_to_parent_fd[0], F_GETFL, 0);
 	fcntl (channel[tab_index].child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK);
-	//printf("minipulating %x\n", &channel[tab_index]->child_to_parent_fd[0]);
+
 	// Create child process for managing the new tab; remember to check for errors!
 	// The first new tab is CONTROLLER, but the rest are URL-RENDERING type.
 
@@ -329,7 +333,7 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 			// User enters the url on the 'controller' tab
 			// which redirects the request to appropriate
 			// child tab via the parent-tab.
-
+			wait_for_browsing_req(channel[tab_index].parent_to_child_fd, b_window);
 
 		}
 
