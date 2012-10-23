@@ -188,6 +188,7 @@ void delete_window_cb(GtkWidget *window, gpointer data)
   child_req_to_parent new_req;
   new_req.type = TAB_KILLED;
   new_req.req.killed_req.tab_index = b_window->tab_index;
+  //printf("%s : %d -- About to do a write on %x which contains %x \n", __FILE__, __LINE__, &b_window->channel.child_to_parent_fd[1], b_window->channel.child_to_parent_fd[1] );
   write(b_window->channel.child_to_parent_fd[1], &new_req, sizeof(new_req));
   if(b_window->tab_index == 0)
 	gtk_main_quit();

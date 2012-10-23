@@ -174,7 +174,9 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cn
 				{
 					case CREATE_TAB :
 						printf("Creating a new tab with index %d\n" , msg.req.new_tab_req.tab_index);
-						create_proc_for_new_tab(&c[total_tabs], total_tabs, NULL);
+						printf("...Using pipe %x\n", &c[total_tabs].child_to_parent_fd[0]);
+
+						create_proc_for_new_tab(c, total_tabs, NULL);
 						total_tabs++;
 						break;
 					case NEW_URI_ENTERED :
@@ -252,19 +254,19 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 	// Remember to error check.
 	int flags;
 
-	if (pipe(channel->parent_to_child_fd) == -1) {
+	if (pipe(channel[tab_index].parent_to_child_fd) == -1) {
 		perror("Could not open parent_to_child pipe:");
 		exit(-1);
 	}
 	
-	if (pipe(channel->child_to_parent_fd) == -1) {
+	if (pipe(channel[tab_index].child_to_parent_fd) == -1) {
 		perror("Could not open child_to_parent pipe:");
 		exit(-1);
 	}
 
-	flags = fcntl (channel->child_to_parent_fd[0], F_GETFL, 0);
-	fcntl (channel->child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK);
-	printf("minipulating %x\n", &channel->child_to_parent_fd[0]);
+	flags = fcntl (channel[tab_index].child_to_parent_fd[0], F_GETFL, 0);
+	fcntl (channel[tab_index].child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK);
+	//printf("minipulating %x\n", &channel[tab_index]->child_to_parent_fd[0]);
 	// Create child process for managing the new tab; remember to check for errors!
 	// The first new tab is CONTROLLER, but the rest are URL-RENDERING type.
 
@@ -312,6 +314,7 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 			// user enters url in 'controller' tabs.
 
 						// Create the 'controller' tab
+			printf("Making a window using pipe %x with contents %x\n" ,&channel[tab_index].child_to_parent_fd[1],channel[tab_index].child_to_parent_fd[1]);
 			create_browser(URL_RENDERING_TAB, 
 				tab_index,
 				G_CALLBACK(new_tab_created_cb), 
@@ -362,7 +365,7 @@ int main()
 	c = (comm_channel*)malloc (sizeof(comm_channel) * TAB_MAX);
 
 	
-	create_proc_for_new_tab(&c[0], 0, 2);
+	create_proc_for_new_tab(c, 0, 2);
 
 	wait_for_child_reqs(c, 1, 2);
 
