@@ -157,19 +157,37 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cn
 		// Poll (read) all tabs that exist.
 		// This will handle CREATE_TAB, NEW_URI_ENTERED, and TAB_KILLED.
 		int i;
+		size_t read_return;
 
 		child_req_to_parent msg;
 
 		for (i = 0; i < total_tabs; i++)
 		{
-			read (c[i].child_to_parent_fd[0], &msg, sizeof(child_req_to_parent));
-			if (errno == EAGAIN)
+			read_return = read (c[i].child_to_parent_fd[0], &msg, sizeof(child_req_to_parent));
+			if (read_return == -1 && errno == EAGAIN)
 			{
-				perror ("Nothing to be read from this pipe");
+				//perror ("Nothing to be read from this pipe");
 			}
-				printf ("router receives a request of type %d\n", msg.type);
+			else
+			{
+				switch (msg.type) 
+				{
+					case CREATE_TAB :
+						printf("Creating a new tab with index %d\n" , msg.req.new_tab_req.tab_index);
+						create_proc_for_new_tab(&c[total_tabs], total_tabs, NULL);
+						total_tabs++;
+						break;
+					case NEW_URI_ENTERED :
+						printf("Received a new URL: %s for tab: %d\n",  msg.req.uri_req.uri, msg.req.uri_req.render_in_tab);
+						break;
+					case TAB_KILLED :
+						printf("Going for the kill on tab: %d\n", msg.req.killed_req.tab_index);
+						break;
+					default :
+						printf("Received a strange type.\n");
+				}
+			}
 		}
-
 
 	}
 
@@ -246,6 +264,7 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 
 	flags = fcntl (channel->child_to_parent_fd[0], F_GETFL, 0);
 	fcntl (channel->child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK);
+	printf("minipulating %x\n", &channel->child_to_parent_fd[0]);
 	// Create child process for managing the new tab; remember to check for errors!
 	// The first new tab is CONTROLLER, but the rest are URL-RENDERING type.
 
