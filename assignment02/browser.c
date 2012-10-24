@@ -9,7 +9,7 @@
 
 extern int errno;
 
-#define TAB_MAX 256
+#define TAB_MAX 10
 
 
 comm_channel * c;
@@ -36,7 +36,7 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 	browser_window* b_window = (browser_window*)data;
 	// Get the tab index where the URL is to be rendered
 	int tab_index = query_tab_id_for_request(entry, data);
-	if(tab_index <= 0 || tab_index > 10){
+	if(tab_index <= 0 || tab_index > TAB_MAX){
 		// Fill in your error handling code here.
 
 
@@ -44,21 +44,26 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 
 	// Get the URL.
 	char* uri = get_entered_uri(entry);
-	printf("Welcome to the URL %s!\n",uri);
 	// Prepare 'request' packet to send to router (/parent) process.
 	child_req_to_parent req;
 
 	// Fill in your code here.
 
 	// enter req.type
+  req.type = NEW_URI_ENTERED;
 
 	// fill in 'render in tab' field
+  req.req.uri_req.render_in_tab = tab_index;
 
 	// fill in 'uri' field
+  strcpy(req.req.uri_req.uri, uri);
 
 
 	// Send the request through the proper FD.
+ // printf("Sending to tab with the fd pair %x...\n",&c[tab_index].parent_to_child_fd);////
 
+  write(c[0].child_to_parent_fd[1], &req, sizeof(child_req_to_parent));
+  
 }
 
 /*
@@ -77,8 +82,9 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 int wait_for_browsing_req(int fds[2], browser_window *b_window)
 {
 
-	render_web_page_in_tab("http://www.google.com", b_window);
-	process_single_gtk_event();
+  new_uri_req msg;
+  size_t read_return;
+	render_web_page_in_tab("", b_window);
 	// Close file descriptors we won't use
 
 
@@ -99,33 +105,41 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
 		// for the window
 
 		// Create a new requirement, read bytes from the proper FD.
-
-		
-		/* Use this code in the following case: 
-		// If read received no data && errno == EAGAIN - just process any pending events and move along.
-		
+		read_return = read (fds[0], &msg, sizeof(new_uri_req));
+    if (read_return == -1 && errno == EAGAIN)
+    {
+      // If read received no data && errno == EAGAIN - just process any pending events and move along.
+      
 			// No browsing request from 'controller' tab
 			// Hence process GTK+ window related function (non-blocking).
 			process_single_gtk_event();
-		*/
-		// Data! Read what it is and fill in the proper request.
 
+    }
+    else
+    {
+      // Data! Read what it is and fill in the proper request.
+      printf("BEHOLD! The url %s!\n",msg.uri);
+      render_web_page_in_tab(msg.uri, b_window);
 
-			// There is a browsing request from the 
+      
+			// There is a browsing request from the
 			// controller tab. Render the requested URL
 			// on current tab.
-
-			// Handle all request types of CREATE_TAB, NEW_URI_ENTERED, 
+      
+			// Handle all request types of CREATE_TAB, NEW_URI_ENTERED,
 			// and TAB_KILLED; for example, with a switch.
-
-
-			// This processes any events left in the browser 
+      
+      
+			// This processes any events left in the browser
 			// and shuts down the window.  Use this to handle TAB_KILLED.
 			/*
-			case TAB_KILLED:
-				process_all_gtk_events();
-				return 0;
-			*/
+       case TAB_KILLED:
+       process_all_gtk_events();
+       return 0;
+       */
+    }
+
+
 
 
 
@@ -143,7 +157,7 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
  *			'controller' tab and performs the required 
  *			functionality based on request code.
  */
-int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cnt)
+int wait_for_child_reqs(comm_channel* channel, int total_tabs, int max_tab_cnt)
 {
 
 
@@ -161,7 +175,7 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cn
 		// This will handle CREATE_TAB, NEW_URI_ENTERED, and TAB_KILLED.
 		int i;
 		size_t read_return;
-
+    new_uri_req * uri_req; // may be used in the event that a uri request is received
 		child_req_to_parent msg;
 
 		for (i = 0; i < total_tabs; i++)
@@ -177,13 +191,22 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int actual_tab_cn
 				{
 					case CREATE_TAB :
 						printf("Creating a new tab with index %d\n" , msg.req.new_tab_req.tab_index);
-						printf("...Using pipe %x\n", &c[total_tabs].child_to_parent_fd[0]);
+						//printf("...Using pipe %x\n", &c[total_tabs].child_to_parent_fd[0]);
 
-						create_proc_for_new_tab(c, total_tabs, NULL);
-						total_tabs++;
+						
+            if (total_tabs < max_tab_cnt)
+            {
+              create_proc_for_new_tab(c, total_tabs, NULL);
+              total_tabs++;
+            }
 						break;
+            
 					case NEW_URI_ENTERED :
+            uri_req = &(msg.req.uri_req);
+            
 						printf("Received a new URL: %s for tab: %d\n",  msg.req.uri_req.uri, msg.req.uri_req.render_in_tab);
+            write(c[uri_req->render_in_tab].parent_to_child_fd[1], uri_req, sizeof(new_uri_req));
+            
 						break;
 					case TAB_KILLED :
 						printf("Going for the kill on tab: %d\n", msg.req.killed_req.tab_index);
@@ -270,6 +293,9 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 
 	flags = fcntl (channel[tab_index].child_to_parent_fd[0], F_GETFL, 0);
 	fcntl (channel[tab_index].child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK);
+  
+  flags = fcntl (channel[tab_index].parent_to_child_fd[0], F_GETFL, 0);
+	fcntl (channel[tab_index].parent_to_child_fd[0], F_SETFL, flags | O_NONBLOCK);
 
 	// Create child process for managing the new tab; remember to check for errors!
 	// The first new tab is CONTROLLER, but the rest are URL-RENDERING type.
@@ -316,8 +342,6 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 			// Create the 'ordinary' tabs.
 			// These tabs render web-pages when
 			// user enters url in 'controller' tabs.
-
-						// Create the 'controller' tab
 			printf("Making a window using pipe %x with contents %x\n" ,&channel[tab_index].child_to_parent_fd[1],channel[tab_index].child_to_parent_fd[1]);
 			create_browser(URL_RENDERING_TAB, 
 				tab_index,
@@ -325,15 +349,14 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 				G_CALLBACK(uri_entered_cb), 
 				&b_window,
 				channel[tab_index]);
-			// Display the 'controller' tab window.
-			// Loop for events
-			show_browser();
+      printf("Creating a tab with the fd pair %x...\n",&channel[tab_index].parent_to_child_fd);////
+      wait_for_browsing_req(channel[tab_index].parent_to_child_fd, b_window);
+
 
 			// Wait for the browsing requests.
 			// User enters the url on the 'controller' tab
 			// which redirects the request to appropriate
 			// child tab via the parent-tab.
-			wait_for_browsing_req(channel[tab_index].parent_to_child_fd, b_window);
 
 		}
 
@@ -371,7 +394,7 @@ int main()
 	
 	create_proc_for_new_tab(c, 0, 2);
 
-	wait_for_child_reqs(c, 1, 2);
+	wait_for_child_reqs(c, 1, TAB_MAX);
 
 	return 0;
 }

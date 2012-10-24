@@ -2,7 +2,13 @@
 #define __MAIN_H_
 
 #include <gtk/gtk.h>
+
+#ifndef __APPLE__
 #include <webkit/webkit.h>
+#else
+typedef void WebKitWebView;
+#endif
+
 
 #define INITIAL_TAB_OFFSET 1
 #define WINDOW_WIDTH 700
