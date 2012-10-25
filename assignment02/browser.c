@@ -82,7 +82,7 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 int wait_for_browsing_req(int fds[2], browser_window *b_window)
 {
 
-  new_uri_req msg;
+  child_req_to_parent msg;
   size_t read_return;
 	render_web_page_in_tab("", b_window);
 	// Close file descriptors we won't use
@@ -105,7 +105,8 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
 		// for the window
 
 		// Create a new requirement, read bytes from the proper FD.
-		read_return = read (fds[0], &msg, sizeof(new_uri_req));
+		read_return = read (fds[0], &msg, sizeof(child_req_to_parent));
+    
     if (read_return == -1 && errno == EAGAIN)
     {
       // If read received no data && errno == EAGAIN - just process any pending events and move along.
@@ -118,8 +119,7 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
     else
     {
       // Data! Read what it is and fill in the proper request.
-      printf("BEHOLD! The url %s!\n",msg.uri);
-      render_web_page_in_tab(msg.uri, b_window);
+      printf("BEHOLD! The url %s!\n",msg.req.uri_req.uri);
 
       
 			// There is a browsing request from the
@@ -129,6 +129,23 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
 			// Handle all request types of CREATE_TAB, NEW_URI_ENTERED,
 			// and TAB_KILLED; for example, with a switch.
       
+      switch (msg.type) {
+        case NEW_URI_ENTERED:
+          render_web_page_in_tab(msg.req.uri_req.uri, b_window);
+          break;
+          
+        case TAB_KILLED:
+          printf("Tab %d: AUUUGH!", msg.req.killed_req.tab_index);
+          process_all_gtk_events();
+          return 0;
+          break;
+        
+        case CREATE_TAB:
+          // Tabs shouldn't have to receive this request.
+        default:
+          break;
+      }
+
       
 			// This processes any events left in the browser
 			// and shuts down the window.  Use this to handle TAB_KILLED.
@@ -159,8 +176,6 @@ int wait_for_browsing_req(int fds[2], browser_window *b_window)
  */
 int wait_for_child_reqs(comm_channel* channel, int total_tabs, int max_tab_cnt)
 {
-
-
 	// Continue listening for child requests 
 	while(1)
 	{
@@ -202,14 +217,20 @@ int wait_for_child_reqs(comm_channel* channel, int total_tabs, int max_tab_cnt)
 						break;
             
 					case NEW_URI_ENTERED :
-            uri_req = &(msg.req.uri_req);
-            
-						printf("Received a new URL: %s for tab: %d\n",  msg.req.uri_req.uri, msg.req.uri_req.render_in_tab);
-            write(c[uri_req->render_in_tab].parent_to_child_fd[1], uri_req, sizeof(new_uri_req));
+
+            write(c[msg.req.uri_req.render_in_tab].parent_to_child_fd[1], &msg, sizeof(child_req_to_parent));
             
 						break;
 					case TAB_KILLED :
 						printf("Going for the kill on tab: %d\n", msg.req.killed_req.tab_index);
+            if (msg.req.killed_req.tab_index > 0)
+            {
+              write(c[msg.req.killed_req.tab_index].parent_to_child_fd[1], &msg, sizeof(child_req_to_parent));
+            }
+            else
+            {
+              return 0;
+            }
 
 						break;
 					default :
@@ -359,7 +380,6 @@ int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab
 			// child tab via the parent-tab.
 
 		}
-
 		exit(0);
 	}
 	 else  // this is parent.
@@ -395,6 +415,9 @@ int main()
 	create_proc_for_new_tab(c, 0, 2);
 
 	wait_for_child_reqs(c, 1, TAB_MAX);
+  
+  printf("Reached the end of main\n");
+  
 
 	return 0;
 }
