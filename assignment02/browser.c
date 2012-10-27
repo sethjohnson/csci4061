@@ -92,7 +92,7 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 	
 	// Get the tab index where the URL is to be rendered
 	int tab_index = query_tab_id_for_request(entry, data);
-	if(tab_index <= 0 || tab_index > TAB_MAX )
+	if(tab_index <= 0 || tab_index >= TAB_MAX )
 	{
 		fprintf(stderr, WRN_PRFX "  -- Could not send uri %s to tab %d - tab is out of range.\n",
 						getpid(), __LINE__, uri, tab_index);
@@ -186,7 +186,7 @@ int wait_for_browsing_req(int parent_to_child_read_fd, browser_window *b_window)
           
         case TAB_KILLED:
 					fprintf(stderr, MSG_PRFX "  -- Tab %d is closed\n",
-									getpid(), __LINE__, msg.req.uri_req.render_in_tab);
+									getpid(), __LINE__, msg.req.killed_req.tab_index);
 					process_all_gtk_events();
           tab_open = false;
           break;
