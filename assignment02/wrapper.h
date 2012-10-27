@@ -29,7 +29,8 @@ void show_browser();
 typedef struct comm_channel
 {
   int		parent_to_child_fd[2];
-  int		child_to_parent_fd[2];	
+  int		child_to_parent_fd[2];
+	bool	active;
 }comm_channel;
 
 /* The GtkWidget and WebKitWebView are needed by GTK to load
@@ -118,7 +119,7 @@ int query_tab_id_for_request(GtkWidget* entry, gpointer data);
 char* get_entered_uri(GtkWidget* entry);
 size_t get_shared_browser_size();
 void page_added_cb(GtkWindow *notebook, GtkWidget* widget, gpointer user_data);
-int create_proc_for_new_tab(comm_channel* channel, bool * tab_states, int tab_index, int actual_tab_cnt);
+int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab_cnt);
 void process_single_gtk_event();
 void process_all_gtk_events(); 
 #endif
