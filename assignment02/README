@@ -43,6 +43,9 @@ The above command will launch the web browser for browsing.
 
 When executed from the terminal, the program first evokes the router process.  The router process is responsible for forking the controller process, and waiting for process request.  Next, once created, the controller process is responsible for rendering the main (controller) browser window. 
 
-Through this browser window the  user can create a new tab (child process) ...by pressing the new tab button, she can also enter a URL for browsing, and select which new tab to render the URL in.
+Through this browser window the user can create a new tab (child process)...by pressing the new tab button, she can also enter a URL for browsing in the Controller URL textbox, followed by selecting which new tab to render the URL in.
+
+Specificly then, the controller sends tab request to the router, the router forks new processes for URL rendering.
+
 
 
