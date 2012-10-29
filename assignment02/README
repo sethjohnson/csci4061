@@ -1,0 +1,51 @@
+/* login: joh08230
+ * date:  10/28/12
+ * name:  Seth Johnson, Michael Walton
+ * id:    4273042, 4192221 
+ */
+
+
+csci4061
+========
+Seth and Michael's CSCI 4061 assignments
+
+-Purpose of Assignment 2: Multi-Process Web Browser-
+
+
+The purpose of this program is to correctly implement/debug/execute a multi-process, event driven web browser.  To this end the program utilizes fork(), wait(), IPC … specifically pipes and the open source GTK library.
+
+
+-How to compile this program-
+
+Included with the program is a make file.
+
+It's recommended that you use the make file to build the program, the following command is used to compile the program from the terminal prompt.
+
+
+
+make
+
+--make will execute the first target in the makefile ... which is build all.
+
+
+
+-How to launch Assignment 2 from the terminal ... the proper syntax to evoke the program-
+
+while at the terminal prompt, please follow this syntax < ./ProgramName >
+
+Example :: ./browser
+
+The above command will launch the web browser for browsing. 
+
+
+
+-Overview of what this program does-
+
+When executed from the terminal, the program first evokes the router process.  The router process is responsible for forking the controller process, and waiting for process request.  Next, once created, the controller process is responsible for rendering the main (controller) browser window. 
+
+Through this browser window the user can create a new tab (child process)...by pressing the new tab button, she can also enter a URL for browsing in the Controller URL textbox, followed by selecting which new tab to render the URL in.
+
+Specificly then, the controller sends tab request to the router, the router forks new processes for URL rendering.
+
+
+
