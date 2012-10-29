@@ -23,3 +23,5 @@ $(OBJ): $(SOURCES)
 clean:
 	rm -rf $(OBJ)
 
+tar:
+	tar cfv $(OBJ).tar.gz Makefile $(SOURCES) $(HEADERS)
