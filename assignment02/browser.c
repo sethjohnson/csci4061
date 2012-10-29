@@ -17,29 +17,43 @@ extern int errno;
 #define MSG_PRFX "messg | PROC %6d LINE %4d"
 #define WRN_PRFX "warng | PROC %6d LINE %4d"
 
+#define EXIT_STATUS_PIPE_ERROR -1
+
+
 /*
- * Name: is_controller_tab
+ * Name:		kill_tab
+ * Input arguments:	'channels'-array of comm_channel structs
+ *			'tab_index'-index of tab to be closed
+ * Output arguments:	int- return value of browser tab being closed
+ * Function:		Send kill message to given tab's pipe, close pipe, 
+ *			wait for tab to die. 
  */
-bool is_controller_tab(int tab_index)
-{
-  return tab_index == 0;
-}
 
-
-void kill_tab(comm_channel* channels, int tab_index) {
+int kill_tab(comm_channel* channels, int tab_index) {
+	int status;
 	if (channels[tab_index].active)
 	{
+		
+		fprintf(stderr, MSG_PRFX "  -- Killing tab %d\n",
+						getpid(), __LINE__, tab_index);
+
+		
 		channels[tab_index].active = false;
 		child_req_to_parent kill_req;
 		kill_req.type = TAB_KILLED;
 		kill_req.req.killed_req.tab_index = tab_index;
 		
-		if(write(channels[tab_index].parent_to_child_fd[1], &kill_req, sizeof(child_req_to_parent)) == -1)
-		{
-			fprintf(stderr, ERR_PRFX "  -- Failure to write to tab %d's parent_to_child_fd[1]==%d\n" ERR_SUFX,
-							getpid(), __LINE__, tab_index, channels[tab_index].parent_to_child_fd[1], strerror(errno));
-		}
 		
+		if (tab_index > 0) // Controller doesn't need a pipe message to die. 
+		{
+			if(write(channels[tab_index].parent_to_child_fd[1], &kill_req, sizeof(child_req_to_parent)) == -1)
+			{
+				fprintf(stderr, ERR_PRFX "  -- Failure to write to tab %d's parent_to_child_fd[1]==%d\n" ERR_SUFX,
+								getpid(), __LINE__, tab_index, channels[tab_index].parent_to_child_fd[1], strerror(errno));
+			}
+
+		}
+
 		
 		if (close(channels[tab_index].parent_to_child_fd[1]) == -1)
 		{
@@ -64,6 +78,9 @@ void kill_tab(comm_channel* channels, int tab_index) {
 							getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0]);
 		}
 	}
+	
+	wait(&status);
+	return status;
 }
 
 /* 
@@ -112,17 +129,14 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
 		// fill in 'uri' field
 		strcpy(req.req.uri_req.uri, uri);
 		
-		
 		// Send the request through the proper FD.
 		
 		if (write(b_window->channel.child_to_parent_fd[1], &req, sizeof(child_req_to_parent)) == -1)
 		{
-			fprintf(stderr, ERR_PRFX "  -- Failure to write to controller's channel.child_to_parent_fd[1]==%d \n\t %s\n",
+			fprintf(stderr, ERR_PRFX "  -- Failure to write to controller's channel.child_to_parent_fd[1]==%d \n" ERR_SUFX,
 							getpid(), __LINE__, b_window->channel.child_to_parent_fd[1], strerror(errno));
 		}
-
 	}
-	  
 }
 
 /*
@@ -196,23 +210,8 @@ int wait_for_browsing_req(int parent_to_child_read_fd, browser_window *b_window)
         default:
           break;
       }
-
-      
-			// This processes any events left in the browser
-			// and shuts down the window.  Use this to handle TAB_KILLED.
-			/*
-       case TAB_KILLED:
-       process_all_gtk_events();
-       return 0;
-       */
     }
-
-
-
-
-
 	}
-
 	return 0;
 }
 
@@ -256,6 +255,7 @@ int wait_for_child_reqs(comm_channel* channels, int total_tabs, int max_tab_cnt)
 					{
 						fprintf(stderr, ERR_PRFX "  -- Failure to read tab %d's child_to_parent_fd[0]==%d\n" ERR_SUFX,
 										getpid(), __LINE__, i, channels[i].child_to_parent_fd[0], strerror(errno));
+						exit(EXIT_STATUS_PIPE_ERROR);
 						
 					}
 				}
@@ -298,7 +298,8 @@ int wait_for_child_reqs(comm_channel* channels, int total_tabs, int max_tab_cnt)
 									kill_tab(channels, closing_tab_itr);
 								
 								controller_open = false;
-								//kill_tab(channels, 0);
+								kill_tab(channels, 0);
+							
 								
 							}
 							
@@ -356,7 +357,7 @@ void new_tab_created_cb(GtkButton *button, gpointer data)
 
 	if (write (channel.child_to_parent_fd[1], &new_req, sizeof(child_req_to_parent)) == -1)
 	{
-		fprintf(stderr, ERR_PRFX "  -- Failure to write to controller's channel.child_to_parent_fd[1]==%d: \n\t %s\n",
+		fprintf(stderr, ERR_PRFX "  -- Failure to write to controller's channel.child_to_parent_fd[1]==%d: \n" ERR_SUFX,
 						getpid(), __LINE__, channel.child_to_parent_fd[1], strerror(errno));
 	}
   
@@ -384,44 +385,48 @@ int create_proc_for_new_tab(comm_channel* channels, int tab_index, int actual_ta
 
 	if (pipe(channels[tab_index].parent_to_child_fd) == -1) {
 		perror("Could not open parent_to_child pipe:");
-		fprintf(stderr, ERR_PRFX "  -- Could not open parent_to_child pipe:\n\t %s\n",
+		fprintf(stderr, ERR_PRFX "  -- Could not open parent_to_child pipe:\n" ERR_SUFX,
 						getpid(), __LINE__, strerror(errno));
 
-		exit(-1);
+		exit(EXIT_STATUS_PIPE_ERROR);
 	}
 	
 	if (pipe(channels[tab_index].child_to_parent_fd) == -1) {
 		perror("Could not open child_to_parent pipe:");
-		exit(-1);
+		exit(EXIT_STATUS_PIPE_ERROR);
 	}
 
 	flags = fcntl (channels[tab_index].child_to_parent_fd[0], F_GETFL, 0);
 	if (flags == -1)
 	{
-		fprintf(stderr, ERR_PRFX "  -- Failure to get tab %d's child_to_parent_fd[0]==%d flags:\n\t %s\n",
+		fprintf(stderr, ERR_PRFX "  -- Failure to get tab %d's child_to_parent_fd[0]==%d flags:\n" ERR_SUFX,
 						getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0], strerror(errno));
+		exit(EXIT_STATUS_PIPE_ERROR);
 	}
 	else
 	{
 		if (fcntl (channels[tab_index].child_to_parent_fd[0], F_SETFL, flags | O_NONBLOCK) == -1)
 		{
-			fprintf(stderr, ERR_PRFX "  -- Failure to set tab %d's child_to_parent_fd[0]==%d flag to NONBLOCK:\n\t %s\n",
+			fprintf(stderr, ERR_PRFX "  -- Failure to set tab %d's child_to_parent_fd[0]==%d flag to NONBLOCK:\n" ERR_SUFX,
 							getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0], strerror(errno));
+			exit(-1);
 		}
 	}
   
 	flags = fcntl (channels[tab_index].parent_to_child_fd[0], F_GETFL, 0);
 	if (flags == -1)
 	{
-		fprintf(stderr, ERR_PRFX "  -- Failure to get tab %d's parent_to_child_fd[0]==%d flags:\n\t %s\n",
+		fprintf(stderr, ERR_PRFX "  -- Failure to get tab %d's parent_to_child_fd[0]==%d flags:\n" ERR_SUFX,
 						getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0], strerror(errno));
+		exit(EXIT_STATUS_PIPE_ERROR);
 	}
 	else
 	{
 		if (fcntl (channels[tab_index].parent_to_child_fd[0], F_SETFL, flags | O_NONBLOCK) == -1)
 		{
-			fprintf(stderr, ERR_PRFX "  -- Failure to set tab %d's parent_to_child_fd[0]==%d flag to NONBLOCK:\n\t %s\n",
+			fprintf(stderr, ERR_PRFX "  -- Failure to set tab %d's parent_to_child_fd[0]==%d flag to NONBLOCK:\n" ERR_SUFX,
 							getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0], strerror(errno));
+			exit(EXIT_STATUS_PIPE_ERROR);
 		}
 	}
 
@@ -441,8 +446,20 @@ int create_proc_for_new_tab(comm_channel* channels, int tab_index, int actual_ta
 		//Child process should close unused pipes and launch
 		// a window for either CONTROLLER or URL-RENDERING tabs.
 		
-		close(channels[tab_index].child_to_parent_fd[0]);
-		close(channels[tab_index].parent_to_child_fd[1]);
+		if (close(channels[tab_index].child_to_parent_fd[0]) == -1)
+		{
+			fprintf(stderr, ERR_PRFX "  -- Failure to close tab %d's child_to_parent_fd[0]==%d\n" ERR_SUFX,
+							getpid(), __LINE__, tab_index, channels[tab_index].child_to_parent_fd[0], strerror(errno));
+			exit(EXIT_STATUS_PIPE_ERROR);
+		}
+		
+		
+		if (close(channels[tab_index].parent_to_child_fd[1]) == -1)
+		{
+			fprintf(stderr, ERR_PRFX "  -- Failure to close tab %d's parent_to_child_fd[1]==%d\n" ERR_SUFX,
+							getpid(), __LINE__, tab_index, channels[tab_index].parent_to_child_fd[1], strerror(errno));
+			exit(EXIT_STATUS_PIPE_ERROR);
+		}
 
 
 		browser_window *b_window = NULL;
@@ -451,7 +468,7 @@ int create_proc_for_new_tab(comm_channel* channels, int tab_index, int actual_ta
 		// this tab which receives browsing requests
 		// from the user and redirects them to 
 		// appropriate child tab via the parent.
-		if(is_controller_tab(tab_index))
+		if((tab_index) == 0)
 		{
 			// Create the 'controller' tab
 			create_browser(CONTROLLER_TAB, 
@@ -499,7 +516,7 @@ int create_proc_for_new_tab(comm_channel* channels, int tab_index, int actual_ta
 		close(channels[tab_index].child_to_parent_fd[1]);
 		close(channels[tab_index].parent_to_child_fd[0]);
     
-		if (is_controller_tab(tab_index))
+		if ((tab_index) == 0)
     {
       wait_for_child_reqs(channels, 1, TAB_MAX);
     }
@@ -529,11 +546,7 @@ int main()
 	
 	create_proc_for_new_tab(channels, 0, 2);
 
-  
-  printf("Reached the end of main\n");
-  
 	free(channels);
-
 	return 0;
 }
 
