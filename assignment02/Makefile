@@ -24,4 +24,4 @@ clean:
 	rm -rf $(OBJ)
 
 tar:
-	tar cfv $(OBJ).tar.gz Makefile $(SOURCES) $(HEADERS)
+	tar cfv $(OBJ).tar.gz Makefile README $(SOURCES) $(HEADERS)
