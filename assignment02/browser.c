@@ -282,6 +282,11 @@ int wait_for_child_reqs(comm_channel* channels, int total_tabs, int max_tab_cnt)
 								create_proc_for_new_tab(channels, total_tabs);
 								total_tabs++;
 							}
+							else
+							{
+								fprintf(stderr, WRN_PRFX "  -- Could not open tab %d - tab is out of range. You may need to restart your browser.\n",
+												getpid(), __LINE__, max_tab_cnt);
+							}
 							break;
 							
 						case NEW_URI_ENTERED :
