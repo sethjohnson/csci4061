@@ -1,10 +1,23 @@
+/* section: 2
+ * date:  10/28/12
+ * name:  Seth Johnson, Michael Walton
+ * id:    4273042, 4192221
+ *
+ * csci4061
+ * ========
+ * Assignment 2
+ *
+ *
+ */
+
+
 #ifndef __MAIN_H_
 #define __MAIN_H_
 
 #include <gtk/gtk.h>
 #include <stdbool.h>
 
-#ifndef __APPLE__
+#ifndef __APPLE__ // This was to allow Seth to do some coding on his mac without getting yelled at constantly by his IDE.
 #include <webkit/webkit.h>
 #else
 typedef void WebKitWebView;
@@ -30,7 +43,7 @@ typedef struct comm_channel
 {
   int		parent_to_child_fd[2];
   int		child_to_parent_fd[2];
-	bool	active;
+	bool	active; // Added to provided code as an indicater of whether a tab was currently open
 }comm_channel;
 
 /* The GtkWidget and WebKitWebView are needed by GTK to load
@@ -119,7 +132,7 @@ int query_tab_id_for_request(GtkWidget* entry, gpointer data);
 char* get_entered_uri(GtkWidget* entry);
 size_t get_shared_browser_size();
 void page_added_cb(GtkWindow *notebook, GtkWidget* widget, gpointer user_data);
-int create_proc_for_new_tab(comm_channel* channel, int tab_index, int actual_tab_cnt);
+int create_proc_for_new_tab(comm_channel* channel, int tab_index);
 void process_single_gtk_event();
 void process_all_gtk_events(); 
 #endif

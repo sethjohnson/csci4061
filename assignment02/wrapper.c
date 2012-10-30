@@ -1,3 +1,16 @@
+/* section: 2
+ * date:  10/28/12
+ * name:  Seth Johnson, Michael Walton
+ * id:    4273042, 4192221
+ *
+ * csci4061
+ * ========
+ * Assignment 2
+ *
+ *
+ */
+
+
 #include "wrapper.h"
 #include <string.h>
 #include <stdlib.h>

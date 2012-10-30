@@ -1,51 +1,64 @@
-/* login: joh08230
+/* section: 2
  * date:  10/28/12
  * name:  Seth Johnson, Michael Walton
  * id:    4273042, 4192221 
+ *
+ * csci4061
+ * ========
+ * Assignment 2
+ *
+ *
  */
 
-
-csci4061
-========
-Seth and Michael's CSCI 4061 assignments
 
 -Purpose of Assignment 2: Multi-Process Web Browser-
 
 
-The purpose of this program is to correctly implement/debug/execute a multi-process, event driven web browser.  To this end the program utilizes fork(), wait(), IPC … specifically pipes and the open source GTK library.
+The purpose of this Assignment is to correctly implement/debug/execute a multi-process, event driven web browser.  To this end the program utilizes fork(), wait(), IPC … specifically pipes and the open source GTK library.
+
+- 1. Purpose of Program -
+The purpose of this Program is to allow the user to browse webpages using multiple windows/tabs, which can be controlled from a controller window/tab. This web browser uses an isolated process for each tab so that browsing on a given tab is not interrupted in the event that another tab crashes.   
 
 
--How to compile this program-
+- 2. How to compile this program-
 
 Included with the program is a make file.
 
-It's recommended that you use the make file to build the program, the following command is used to compile the program from the terminal prompt.
+It's recommended that you use the make file to build the program, the following command is used to compile the program from the terminal prompt:
 
-
-
-make
+$ make
 
 --make will execute the first target in the makefile ... which is build all.
 
 
 
--How to launch Assignment 2 from the terminal ... the proper syntax to evoke the program-
+- 3. How to launch Assignment 2 from the terminal ... the proper syntax to evoke the program-
 
 while at the terminal prompt, please follow this syntax < ./ProgramName >
 
-Example :: ./browser
+Example :
+$ ./browser
 
 The above command will launch the web browser for browsing. 
+There are no available arguments or flags.
 
 
-
--Overview of what this program does-
+- 4. Overview of what this program does-
 
 When executed from the terminal, the program first evokes the router process.  The router process is responsible for forking the controller process, and waiting for process request.  Next, once created, the controller process is responsible for rendering the main (controller) browser window. 
 
-Through this browser window the user can create a new tab (child process)...by pressing the new tab button, she can also enter a URL for browsing in the Controller URL textbox, followed by selecting which new tab to render the URL in.
+Through this controller window the user can create a new tab (child process)...by pressing the new tab button.
+The user can also enter a URL for browsing in the Controller URL textbox and specify the tab number corresponding to the tab within which the desired page should be rendered.
 
-Specificly then, the controller sends tab request to the router, the router forks new processes for URL rendering.
+The controller sends tab request to the router, and the router forks new processes for URL rendering.
+When a tab is closed, the tab sends a notification to the router, and the router deals with any clean-up. 
+These requests and notifications are implemented using pipes. 
 
+- 5. Assumptions - 
+We assumed that tabs should be opened blank, and than a tab must be already open in order to send it a page request. 
+We assumed that if a tab encounters an error while closing, it can continue its shut-down procedure and any pipes that were not able to close will be taken care of by the OS when the tab process exits. 
+
+- 6. Error handling-
+Every system call is checked and in the event of an error, a message is displayed in the console with details. When a tab's initialization calls fail, a message is displayed and the initialization is aborted while the rest of the browser remains intact. Keep an eye on the console for errors and usage warnings!
 
 
