@@ -30,8 +30,7 @@ packet_t get_packet (size) {
 }
 
 
-void packet_handler(int sig)
-{
+void packet_handler(int sig){
 	static packet_t * array;
 	int i;
 
@@ -45,18 +44,15 @@ void packet_handler(int sig)
 		pkt_total = pkt.how_many;
 		array = mm_get(&MM, pkt_total*sizeof(pkt));
 		for (i = 0; i < pkt_total; i++) {
-			array[i].how_many = 0;
+			array[i].how_many = 0; //Flag each spot as unused. 
 		}
 		
 	}
   
 	//printf("CURRENT MESSAGE %d\n",cnt_msg);
 	/* insert your code here ... stick packet in memory, make sure to handle duplicates appropriately */
-	
-	//printf("Packet number %d\n",pkt.which);
-	//printf("Contains a '%s'\n",pkt.data);
-	
-	if ((target_slot = array + pkt.which)->how_many == 0) {
+	target_slot = array + pkt.which;
+	if (target_slot->how_many == 0) {
 		pkt_cnt++;
 		*target_slot = pkt;
 	} else {
@@ -75,24 +71,23 @@ void packet_handler(int sig)
 }
 
 struct sigaction act;
-int main (int argc, char **argv)
-{
+int main (int argc, char **argv){
 	int j;
+	struct itimerval timer;
+
 	/* set up alarm handler -- mask all signals within it */
 	act.sa_handler=packet_handler;
 	act.sa_flags=0;
 	sigemptyset(&act.sa_mask);
+	
 	//install signal handler for SIGALRM
 	sigaction(SIGALRM,&act,NULL);
 	
-	struct itimerval timer;
+	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
 	timer.it_interval.tv_sec = 1;
 	timer.it_interval.tv_usec = 0;
 	timer.it_value = timer.it_interval;
 	setitimer(ITIMER_REAL, &timer, NULL);
-	
-	
-	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
 	
 	message.num_packets = 0;
 	mm_init (&MM, 200);
