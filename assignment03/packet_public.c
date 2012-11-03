@@ -109,4 +109,5 @@ int main (int argc, char **argv)
 		
 	}
 	/* Deallocate memory manager */
+	mm_release(&MM);
 }
