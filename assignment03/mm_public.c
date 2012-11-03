@@ -17,15 +17,15 @@ double comp_time (struct timeval times, struct timeval timee)
 
 /* Write these ... */
 int mm_init (mm_t *MM, int tsz){
-
+	return 0;
 }
 
 void* mm_get (mm_t *MM, int neededSize) {
-
+	return malloc(neededSize);
 }
 
 void mm_put (mm_t *MM, void *chunk) {
-
+	free(chunk);
 }
 
 void mm_release (mm_t *MM) {

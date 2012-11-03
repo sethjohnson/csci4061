@@ -1,3 +1,6 @@
+#ifndef MM_PUBLIC
+#define MM_PUBLIC
+
 #include <sys/time.h>
 #include <signal.h>
 
@@ -28,3 +31,4 @@ void* mm_get (mm_t *MM, int neededSize);
 void mm_put (mm_t *MM, void *chunk);
 void  mm_release (mm_t *MM);
 double comp_time (struct timeval times, struct timeval timee);
+#endif
