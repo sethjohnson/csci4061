@@ -111,22 +111,31 @@ void* mm_get (mm_t *MM, int neededSize) {
 			copy_node_to_list_after_node(&new_node, &MM->tracker, pre_node);
 		}
 	}
-	//printf("Handing off space at %X!\n",destination);
-	//print_linked_list(MM->tracker.head);
+	if (destination) {
+		printf("Handing off space at %X!\n",destination);
+	} else {
+		printf("Couldn't find %d bytes of space.\n",neededSize);
+	}
+	print_linked_list(MM->tracker.head);
 	return destination;
 }
 
 void mm_put (mm_t *MM, void *chunk) {
 	node * runner = MM->tracker.head;
-	node * tailer = MM->tracker.head;
+	node * tailer = NULL;
 	while(runner && runner->address < chunk) {
 		tailer = runner;
 		runner = runner->next;
 	}
+	if (tailer == NULL) { 
+		<#statements#>
+	}
 	if(runner->address == chunk) {
 		remove_next_node_from_node(tailer);
+	} else {
+		
 	}
-	//print_linked_list(MM->tracker.head);
+	print_linked_list(MM->tracker.head);
 
 }
 
@@ -164,13 +173,14 @@ void * find_space_and_pre_node(mm_t * MM, size_t size, node ** pre_node) {
 	bool finished = false;
 	node * traverser = MM->tracker.head;
 	void * result = NULL;
+	
+	
 	while (!finished) {
 		if (traverser==NULL) {
 			if (MM->stuff + MM->tsz - MM->stuff >= size) {
 				result = MM->stuff;
 				finished = true;
 			}
-				
 		}
 		else {
 			if (bytes_after(MM, traverser) >= size) {
@@ -183,8 +193,13 @@ void * find_space_and_pre_node(mm_t * MM, size_t size, node ** pre_node) {
 				finished = true;
 			}
 		}
-		if (finished != true)
-			traverser = traverser->next;
+		if (finished != true) {
+			if (traverser) {
+				traverser = traverser->next;
+			} else {
+				fprintf(stderr, "OH NO!\n");
+			}
+		}
 	}
 	*pre_node = traverser;
 	return result;

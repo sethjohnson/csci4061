@@ -32,7 +32,7 @@ packet_t get_packet (size) {
 
 void packet_handler(int sig){
 	static packet_t * array;
-	int i;
+	int initialize_index;
 
 	packet_t * target_slot;
 	packet_t pkt;
@@ -43,11 +43,12 @@ void packet_handler(int sig){
 	if(pkt_cnt==0){ // when the 1st packet arrives, the size of the whole message is allocated.
 		pkt_total = pkt.how_many;
 		if((array = mm_get(&MM, pkt_total*sizeof(pkt)))==NULL) {
-			printf("SAD DAY!\n");
+			fprintf(stderr, "Couldn't allocate space for Message %d\n",cnt_msg);
 			exit(0);
 		};
-		for (i = 0; i < pkt_total; i++) {
-			array[i].how_many = 0; //Flag each spot as unused. 
+		//fprintf(stderr,"Size of message is %ld\n",pkt_total*sizeof(packet_t));
+		for (initialize_index = 0; initialize_index < pkt_total; initialize_index++) {
+			array[initialize_index].how_many = 0; //Flag each spot as unused. 
 		}
 		
 	}
@@ -63,8 +64,8 @@ void packet_handler(int sig){
 	}
 	if (pkt_cnt == pkt_total) {
 		/*Print the packets in the correct order.*/
-		for (i = 0; i < pkt_total; i++) {
-			printf("%s",array[i].data);
+		for (initialize_index = 0; initialize_index < pkt_total; initialize_index++) {
+			printf("%s",array[initialize_index].data);
 		}
 		putchar('\n');
 		/*Deallocate message*/
@@ -88,12 +89,12 @@ int main (int argc, char **argv){
 	
 	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
 	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 5000;
+	timer.it_interval.tv_usec = 15000;
 	timer.it_value = timer.it_interval;
 	setitimer(ITIMER_REAL, &timer, NULL);
 	
 	message.num_packets = 0;
-	mm_init (&MM, 200);
+	mm_init (&MM, 95);
 	for (j=1; j<=NumMessages; j++) {
 		while (pkt_cnt < pkt_total)
 			pause();
@@ -101,7 +102,7 @@ int main (int argc, char **argv){
 		// reset these for next message
 		pkt_total = 1;
 		pkt_cnt = 0;
-		message.num_packets = 0;
+		//message.num_packets = 0;
 		cnt_msg++;
 		// anything else?
 		
