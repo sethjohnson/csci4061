@@ -42,7 +42,10 @@ void packet_handler(int sig){
 														 //pkt_total = pkt.how_many;
 	if(pkt_cnt==0){ // when the 1st packet arrives, the size of the whole message is allocated.
 		pkt_total = pkt.how_many;
-		array = mm_get(&MM, pkt_total*sizeof(pkt));
+		if((array = mm_get(&MM, pkt_total*sizeof(pkt)))==NULL) {
+			printf("SAD DAY!\n");
+			exit(0);
+		};
 		for (i = 0; i < pkt_total; i++) {
 			array[i].how_many = 0; //Flag each spot as unused. 
 		}
@@ -84,8 +87,8 @@ int main (int argc, char **argv){
 	sigaction(SIGALRM,&act,NULL);
 	
 	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
-	timer.it_interval.tv_sec = 1;
-	timer.it_interval.tv_usec = 0;
+	timer.it_interval.tv_sec = 0;
+	timer.it_interval.tv_usec = 5000;
 	timer.it_value = timer.it_interval;
 	setitimer(ITIMER_REAL, &timer, NULL);
 	
