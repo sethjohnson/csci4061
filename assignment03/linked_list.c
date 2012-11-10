@@ -136,14 +136,15 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 	
 	void * field_end = field+field_size;
 
-	node * pre_node = (list->head);
+	node ** pre_node;
+	(pre_node) = &(list->head);
 	
 	while (!done) {
 		
-		if (pre_node != NULL) {
-			left_address = (pre_node->address + pre_node->size);
-			if (pre_node->next != NULL) {
-				right_address = pre_node->next->address;
+		if ((*pre_node) != NULL) {
+			left_address = ((*pre_node)->address + (*pre_node)->size);
+			if ((*pre_node)->next != NULL) {
+				right_address = (*pre_node)->next->address;
 			} else {
 				right_address = field_end;
 			}
@@ -160,7 +161,7 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 		if (space_between >= size) {
 			done = true;
 		} else {
-			(pre_node) = (pre_node)->next;
+			pre_node = &((*pre_node)->next);
 		}
 
 	}
@@ -169,8 +170,31 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 		fprintf(stderr, "Just plain not enough space! =( \n");
 		return NULL;
 	} else {
-			add_value_to_linked_list(list, left_address, size);
-			return left_address;
+		
+		if ((container = grab_new_node(list)) == NULL) {
+			fprintf(stderr, "Ran out of nodes and couldn't make more.\n");
+			
+		} else {
+			container->address = left_address;
+			container->size = size;
+			
+			node ** last_next_pointer = &(list->head);
+			
+			while ( ((*last_next_pointer) != NULL)
+						 && ((*last_next_pointer)->address <= left_address) ) {
+				last_next_pointer = &((*last_next_pointer)->next);
+			}
+			container->next = (*last_next_pointer);
+			*last_next_pointer = container;
+
+			//			container->next = (*pre_node);
+//			*pre_node = container;
+			
+
+			
+			//add_node_to_linked_list(list, container);
+		}
+		return left_address;
 	}
 }
 

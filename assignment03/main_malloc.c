@@ -10,7 +10,7 @@ int main (int argc, char **argv)
 	
 
 	j = gettimeofday (&times, (void *)NULL);
-	for ( t = 0; t < 10000000; t++) {
+	for ( t = 0; t < 100000; t++) {
 		for (i=0; i<how; i++) {
 			b[i] = (void*)malloc ((i+1));
 			free (b[i]);
