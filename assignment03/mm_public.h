@@ -9,25 +9,12 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "linked_list.h"
+
 #define INTERVAL 0
 #define INTERVAL_USEC 800000
 #define SZ 64
 #define how 8
-
-typedef struct node_s{
-	void* address;
-	int size;
-	int flag; //We used flag to indicate whether a chunk is free or not. You can however ignore that and use another solution.
-	struct node_s * next;
-} node;
-
-typedef struct {
-	node * array;
-	node *head;
-	long capacity;
-	long next_spot;
-	bool has_looped;
-} linked_list;
 
 
 int linked_list_init(linked_list * l, size_t initial_capacity);
