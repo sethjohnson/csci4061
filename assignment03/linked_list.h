@@ -40,5 +40,6 @@ node * grab_new_node(linked_list * list);
 void add_value_to_linked_list(linked_list * list, void * value, int size);
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size);
 int remove_value_from_linked_list(linked_list * list, void * value);
+void destroy_linked_list(linked_list * list);
 
 #endif

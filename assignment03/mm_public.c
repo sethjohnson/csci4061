@@ -44,7 +44,7 @@ void* mm_get (mm_t *MM, int neededSize) {
 		if (return_val == NULL)
 			fprintf(stderr, "mm_get() failed to find %d bytes.\n", neededSize);
 		else 
-			fprintf(stderr, "mm_get() found %d bytes at 0x%08x.\n",return_val);
+			fprintf(stderr, "mm_get() found %d bytes at 0x%08x.\n",neededSize, (unsigned)return_val);
 		printf("Linked List and Node Array : \n");
 		print_list_array(&MM->tracker);
 		printf("Memory View : \n");
@@ -75,12 +75,14 @@ void mm_put (mm_t *MM, void *chunk) {
 void mm_release (mm_t *MM) {
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_RELEASE() DEBUG OUTPUT *****\n");
-		fprintf(stderr, "released the %d bytes managed by MM at 0x%08X.\n",(unsigned)MM->tsz);
+		fprintf(stderr, "released the %d bytes managed by MM at 0x%08X.\n",MM->tsz, (unsigned)MM->tsz);
 		
 		fprintf(stderr, "***** END MM_RELEASE() DEBUG OUTPUT *****\n\n");
 	}
-	
+	destroy_linked_list(&(MM->tracker));
 	free(MM->stuff);
+	MM->stuff = NULL;
+	MM->tsz = 0;
 
 }
 

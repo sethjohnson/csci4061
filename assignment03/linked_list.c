@@ -230,4 +230,12 @@ int remove_value_from_linked_list(linked_list * list, void * value) {
 	return return_status;
 }
 
-
+// Free memory used for node array and give attributes meaningful values
+void destroy_linked_list(linked_list * list) {
+	free(list->array);
+	list->count=0;
+	list->capacity = 0;
+	list->array = NULL;
+	list->head = NULL;
+	list->first_empty_node = NULL;
+}

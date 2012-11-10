@@ -1,7 +1,7 @@
 #ifndef MM_PUBLIC
 #define MM_PUBLIC
 
-
+#define DEBUG 0
 #include <sys/time.h>
 #include <signal.h>
 
@@ -18,25 +18,12 @@
 #define how 8
 
 
-int linked_list_init(linked_list * l, size_t initial_capacity);
-long find_next_spot(linked_list * l);
-int copy_node_to_list_after_node(const node * const n, linked_list * l, node * pre_node);
-bool is_full(linked_list * l);
-void remove_next_node_from_node(node * pre_node);
 typedef struct {
 	void *stuff;
 	linked_list tracker;
-
 	int tsz;
-	int partitions;
-	int max_avail_size;
 } mm_t;
 
-void insert_node_after(node * const input, node * const pre_node);
-
-size_t bytes_after(mm_t *MM, const node * n);
-
-void * find_space_and_pre_node(mm_t * MM, size_t size, node ** pre_node);
 void print_memory(mm_t *MM);
 
 int mm_init (mm_t *MM, int tsz);
