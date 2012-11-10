@@ -15,15 +15,15 @@
 typedef struct{
 	void* address;
 	int size;
-	int flag; //We used flag to indicate whether a chunk is free or not. You can however ignore that and use another solution.
+	int flag; //We used flag to indicate whether a chunk is free or not
 } node;
 
 typedef struct {
 	void *stuff;
 	node *free_list;
-	int tsz; 
+	int tsz;
 	int partitions;
-	int max_avail_size; 
+	int max_avail_size;//total size of the memory chunk 
 } mm_t;
 
 int mm_init (mm_t *MM, int tsz);

@@ -14,3 +14,6 @@ packet: mm_public.o
 
 mm_public.o:
 	gcc -g -c mm_public.c
+
+clean:
+	rm -f *.o main_malloc main_mm packet_public

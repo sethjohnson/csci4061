@@ -17,7 +17,20 @@ double comp_time (struct timeval times, struct timeval timee)
 
 /* Write these ... */
 int mm_init (mm_t *MM, int tsz){
-	return 0;
+
+	char * mem;
+	mem = (char*)malloc(sizeof(char) * tsz);
+
+	MM->stuff = mem;
+	MM->tsz = tsz;
+	MM->partitions = 0;
+	MM->max_avail_size = tsz;//total size of the memory block
+	
+//*****************************************************
+
+	MM->free_list->address = ;//starting address of the memory block
+	MM->free_list->size = tsz;//
+
 }
 
 void* mm_get (mm_t *MM, int neededSize) {
