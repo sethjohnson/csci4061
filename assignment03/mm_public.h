@@ -37,7 +37,7 @@ void insert_node_after(node * const input, node * const pre_node);
 size_t bytes_after(mm_t *MM, const node * n);
 
 void * find_space_and_pre_node(mm_t * MM, size_t size, node ** pre_node);
-
+void print_memory(mm_t *MM);
 
 int mm_init (mm_t *MM, int tsz);
 void* mm_get (mm_t *MM, int neededSize);

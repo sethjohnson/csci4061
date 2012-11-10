@@ -96,7 +96,7 @@ int main (int argc, char **argv){
 	setitimer(ITIMER_REAL, &timer, NULL);
 	
 	message.num_packets = 0;
-	mm_init (&MM, 95);
+	mm_init (&MM, 80);
 	for (j=1; j<=NumMessages; j++) {
 		while (pkt_cnt < pkt_total)
 			pause();

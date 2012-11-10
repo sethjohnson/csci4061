@@ -22,30 +22,73 @@ int mm_init (mm_t *MM, int tsz){
 	MM->tsz = tsz;
 	MM->stuff = malloc(tsz);
 	init_linked_list(&MM->tracker);
+	if (DEBUG) {
+		fprintf(stderr, "\n***** BEGIN MM_INIT() DEBUG OUTPUT *****\n");
+		if (MM->stuff != NULL) {
+					fprintf(stderr, "Initialzed %d bytes at 0x%08X for MM at 0x%08X.\n",tsz, (unsigned)MM->stuff, (unsigned)MM->tsz);
+		}
+
+		
+		fprintf(stderr, "***** END MM_INIT() DEBUG OUTPUT *****\n\n");
+	}
+
 	return MM->stuff != NULL ? 0 : -1; // return -1 if 
 
 }
 
 void* mm_get (mm_t *MM, int neededSize) {
 	void * return_val = create_and_insert_new_node_with_size(&MM->tracker, MM->stuff, MM->tsz, neededSize);
-	print_list_array(&MM->tracker);
+	if (DEBUG) {
+		fprintf(stderr, "\n***** BEGIN MM_GET() DEBUG OUTPUT *****\n");
+
+		if (return_val == NULL)
+			fprintf(stderr, "mm_get() failed to find %d bytes.\n", neededSize);
+		else 
+			fprintf(stderr, "mm_get() found %d bytes at 0x%08x.\n",return_val);
+		printf("Linked List and Node Array : \n");
+		print_list_array(&MM->tracker);
+		printf("Memory View : \n");
+		print_memory(MM);
+		fprintf(stderr, "***** END MM_GET() DEBUG OUTPUT *****\n\n");
+	}
+
+
 	return return_val;
 	
 }
 
 void mm_put (mm_t *MM, void *chunk) {
 	remove_value_from_linked_list(&MM->tracker, chunk);
-	print_list_array(&MM->tracker);
+	if (DEBUG) {
+		fprintf(stderr, "\n***** BEGIN MM_PUT() DEBUG OUTPUT *****\n");
+		fprintf(stderr, "mm_put() returned the space at 0x%08x.\n",(unsigned)chunk);
+		printf("Linked List and Node Array : \n");
+		print_list_array(&MM->tracker);
+		printf("Memory View : \n");
+		print_memory(MM);
+		fprintf(stderr, "***** END MM_PUT() DEBUG OUTPUT *****\n\n");
+
+	}
 
 }
 
 void mm_release (mm_t *MM) {
+	if (DEBUG) {
+		fprintf(stderr, "\n***** BEGIN MM_RELEASE() DEBUG OUTPUT *****\n");
+		fprintf(stderr, "released the %d bytes managed by MM at 0x%08X.\n",(unsigned)MM->tsz);
+		
+		fprintf(stderr, "***** END MM_RELEASE() DEBUG OUTPUT *****\n\n");
+	}
+	
 	free(MM->stuff);
+
 }
 
 //Print a nice horizintal map of what memory is being used
 void print_memory(mm_t *MM) {
-	putchar('|');
+	fputc('|', stderr);
+	fflush(stderr);
+
 	node * n = MM->tracker.head;
 	void* start = MM->stuff;
 
@@ -53,21 +96,30 @@ void print_memory(mm_t *MM) {
 	
 	while (n != NULL) {
 		while (runner < (char*)n->address) {
-			putchar(' ');
+			fputc('_', stderr);
 			runner++;
 		}
-		putchar('#');
+		fflush(stderr);
+
+		fputc('#', stderr);
 		runner++;
 		while (runner < (char*)n->address + n->size) {
-			putchar('=');
+			fputc('=', stderr);
 			runner++;
 		}
+		fflush(stderr);
+
 		n = n->next;
 	}
 	while (runner < ((char*)start)+MM->tsz) {
-		putchar(' ');
+		fputc('_', stderr);
 		runner++;
 	}
-	putchar('|');
-	putchar('\n');
+	fflush(stderr);
+
+	fputc('|', stderr);
+	fflush(stderr);
+
+	fputc('\n', stderr);
+	fflush(stderr);
 }

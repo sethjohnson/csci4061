@@ -132,7 +132,7 @@ long bytes_after(void * field, int field_size, const node * n) {
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
 	bool done = false;
 	void * left_address = field;
-	void * right_address;
+	void * right_address = NULL;
 	long space_between = 0;
 	node * container;
 	
@@ -142,6 +142,9 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 	(pre_node) = &(list->head);
 	if ((*pre_node) != NULL) {
 		right_address = (*pre_node)->address;
+	} else {
+		right_address = field_end;
+		done = true;
 	}
 	space_between = right_address-left_address;
 
