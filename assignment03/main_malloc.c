@@ -5,8 +5,8 @@ int main (int argc, char **argv)
 	int j, i, t;
 	struct timeval times, timee;
 	void *b[56];
-	struct itimerval interval;
-	struct itimerval oldinterval;
+//	struct itimerval interval;
+//	struct itimerval oldinterval;
 	
 
 	j = gettimeofday (&times, (void *)NULL);
@@ -20,4 +20,6 @@ int main (int argc, char **argv)
 	j = gettimeofday (&timee, (void *)NULL);
 	fprintf (stderr, "MALLOC/FREE time took %f msec\n",
 		comp_time (times, timee)/1000.0);
+	
+	return 0;
 }

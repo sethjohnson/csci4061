@@ -25,7 +25,7 @@ int mm_init (mm_t *MM, int tsz){
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_INIT() DEBUG OUTPUT *****\n");
 		if (MM->stuff != NULL) {
-					fprintf(stderr, "Initialzed %d bytes at 0x%08X for MM at 0x%08X.\n",tsz, (unsigned)MM->stuff, (unsigned)MM->tsz);
+					fprintf(stderr, "Initialzed %d bytes at 0x%08lX for MM at 0x%08lX.\n",tsz, (unsigned long)(MM->stuff), (unsigned long)(MM));
 		}
 
 		
@@ -44,7 +44,7 @@ void* mm_get (mm_t *MM, int neededSize) {
 		if (return_val == NULL)
 			fprintf(stderr, "mm_get() failed to find %d bytes.\n", neededSize);
 		else 
-			fprintf(stderr, "mm_get() found %d bytes at 0x%08x.\n",neededSize, (unsigned)return_val);
+			fprintf(stderr, "mm_get() found %d bytes at 0x%08lx.\n",neededSize, (unsigned long)return_val);
 		printf("Linked List and Node Array : \n");
 		print_list_array(&MM->tracker);
 		printf("Memory View : \n");
@@ -61,7 +61,7 @@ void mm_put (mm_t *MM, void *chunk) {
 	remove_value_from_linked_list(&MM->tracker, chunk);
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_PUT() DEBUG OUTPUT *****\n");
-		fprintf(stderr, "mm_put() returned the space at 0x%08x.\n",(unsigned)chunk);
+		fprintf(stderr, "mm_put() returned the space at 0x%08lx.\n",(unsigned long)chunk);
 		printf("Linked List and Node Array : \n");
 		print_list_array(&MM->tracker);
 		printf("Memory View : \n");
@@ -75,7 +75,7 @@ void mm_put (mm_t *MM, void *chunk) {
 void mm_release (mm_t *MM) {
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_RELEASE() DEBUG OUTPUT *****\n");
-		fprintf(stderr, "released the %d bytes managed by MM at 0x%08X.\n",MM->tsz, (unsigned)MM->tsz);
+		fprintf(stderr, "released the %d bytes managed by MM at 0x%08lX.\n",MM->tsz, (unsigned long)MM);
 		
 		fprintf(stderr, "***** END MM_RELEASE() DEBUG OUTPUT *****\n\n");
 	}

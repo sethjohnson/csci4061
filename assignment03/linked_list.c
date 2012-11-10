@@ -14,7 +14,7 @@ void print_list_array(linked_list * list) {
 	print_linked_list(list);
 	printf("%d/%d nodes in use.\n",list->count, list->capacity);
 	for (i = 0; i < list->capacity; i++) {
-		printf("| %3d | 0x..%03x | 0x%08X | 0x..%03x |", i, (unsigned)&(list->array[i])%0x1000, (unsigned)list->array[i].address, (unsigned)(list->array[i].next)%0x1000 );
+		printf("| %3d | 0x..%03lx | 0x%08lX | 0x..%03lx |", i, (unsigned long)&(list->array[i])%0x1000, (unsigned long)list->array[i].address, (unsigned long)(list->array[i].next)%0x1000 );
 		if (list->first_empty_node == &(list->array[i])) {
 			printf(" <-- First Empty");
 			
@@ -28,7 +28,7 @@ void print_linked_list(linked_list * list) {
 	printf("HEAD");
 	node *n = list->head;
 	while (n) {
-		printf(" -> %X", (unsigned)n);
+		printf(" -> %lX", (unsigned long)n);
 		n = n->next;
 	}
 	printf(" -> X \n");
