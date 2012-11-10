@@ -132,7 +132,10 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 	void * left_address;
 	void * right_address;
 	long space_between = 0;
+	node * container;
 	
+	void * field_end = field+field_size;
+
 	node * pre_node = (list->head);
 	
 	while (!done) {
@@ -142,12 +145,14 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 			if (pre_node->next != NULL) {
 				right_address = pre_node->next->address;
 			} else {
-				right_address = field+field_size;
+				right_address = field_end;
 			}
 			
 			space_between = right_address-left_address;
 		}
 		else {
+			left_address = field;
+			//right_address	= field_end;
 			space_between = field_size;
 		}
 
@@ -160,15 +165,13 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 
 	}
 
-	if ((pre_node) == NULL) {
-		add_value_to_linked_list(list, field, size);
-		return field;
+	if (space_between < size) {
+		fprintf(stderr, "Just plain not enough space! =( \n");
+		return NULL;
 	} else {
-		add_value_to_linked_list(list, (pre_node)->address+(pre_node)->size, size);
-		return (pre_node)->address+(pre_node)->size;
-
+			add_value_to_linked_list(list, left_address, size);
+			return left_address;
 	}
-
 }
 
 int remove_value_from_linked_list(linked_list * list, void * value) {
