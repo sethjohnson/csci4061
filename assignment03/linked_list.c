@@ -131,7 +131,7 @@ long bytes_after(void * field, int field_size, const node * n) {
 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
 	bool done = false;
-	void * left_address;
+	void * left_address = field;
 	void * right_address;
 	long space_between = 0;
 	node * container;
@@ -140,38 +140,47 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 
 	node ** pre_node;
 	(pre_node) = &(list->head);
-	
-	while (!done) {
-		
-		if ((*pre_node) != NULL) {
-			left_address = ((*pre_node)->address + (*pre_node)->size);
-			if ((*pre_node)->next != NULL) {
-				right_address = (*pre_node)->next->address;
-			} else {
-				right_address = field_end;
+	if ((*pre_node) != NULL) {
+		right_address = (*pre_node)->address;
+	}
+	space_between = right_address-left_address;
+
+	if (!(space_between >= size)) {
+		while (!done) {
+			
+			if ((*pre_node) != NULL) {
+				left_address = ((*pre_node)->address + (*pre_node)->size);
+				if ((*pre_node)->next != NULL) {
+					right_address = (*pre_node)->next->address;
+				} else {
+					right_address = field_end;
+					done = true;// Reached the end of the line!
+				}
+				
+				space_between = right_address-left_address;
+			}
+			else {
+				left_address = field;
+				space_between = field_size;
 			}
 			
-			space_between = right_address-left_address;
-		}
-		else {
-			left_address = field;
-			space_between = field_size;
+			if (space_between >= size) {
+				done = true;
+			} else {
+				pre_node = &((*pre_node)->next);
+			}
 		}
 
-		if (space_between >= size) {
-			done = true;
-		} else {
-			pre_node = &((*pre_node)->next);
-		}
 	}
-
+	
+	
 	if (space_between < size) {
-		fprintf(stderr, "Just plain not enough space! =( \n");
+		fprintf(stderr, "WARNING – Memory Manager does not have sufficient space for %d-byte allocation.\n",size);
 		return NULL;
 	} else {
 		
 		if ((container = grab_new_node(list)) == NULL) {
-			fprintf(stderr, "Ran out of nodes and couldn't make more.\n");
+			fprintf(stderr, "ERROR – Memory Manager internal error: Ran out of nodes for memory tracking and could not allocate more.\n");
 			
 		} else {
 			container->address = left_address;
@@ -207,7 +216,7 @@ int remove_value_from_linked_list(linked_list * list, void * value) {
 		(*last_next_pointer) = (*last_next_pointer)->next;
 		
 		to_be_removed->address = NULL; //Indicate that this node is no longer pointing to actual memory
-		
+
 		to_be_removed->next = list->first_empty_node; //
 		list->first_empty_node = to_be_removed;
 		

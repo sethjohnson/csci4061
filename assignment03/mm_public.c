@@ -28,12 +28,14 @@ int mm_init (mm_t *MM, int tsz){
 
 void* mm_get (mm_t *MM, int neededSize) {
 	void * return_val = create_and_insert_new_node_with_size(&MM->tracker, MM->stuff, MM->tsz, neededSize);
+	print_list_array(&MM->tracker);
 	return return_val;
 	
 }
 
 void mm_put (mm_t *MM, void *chunk) {
 	remove_value_from_linked_list(&MM->tracker, chunk);
+	print_list_array(&MM->tracker);
 
 }
 
