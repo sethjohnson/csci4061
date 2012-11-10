@@ -2,6 +2,8 @@
 #include "packet_public.h"
 #include <string.h>
 #include <unistd.h>
+
+
 message_t message;     /* current message structure */
 mm_t MM;               /* memory manager will allocate memory for packets */
 int pkt_cnt = 0;       /* how many packets have arrived for current message */

@@ -32,7 +32,7 @@ typedef struct {
 } linked_list;
 
 void print_list_array(linked_list * list);
-void print_linked_list(node * head);
+void print_linked_list(linked_list * list);
 int init_linked_list_with_node_count(linked_list * list, int initial_count);
 int init_linked_list(linked_list * list);
 void add_node_to_linked_list(linked_list * list, node * n);

@@ -8,9 +8,10 @@
 
 #include "linked_list.h"
 
+// Print the contents of the node array
 void print_list_array(linked_list * list) {
 	int i;
-	print_linked_list(list->head);
+	print_linked_list(list);
 	printf("%d/%d nodes in use.\n",list->count, list->capacity);
 	for (i = 0; i < list->capacity; i++) {
 		printf("| %3d | 0x..%03x | 0x%08X | 0x..%03x |", i, (unsigned)&(list->array[i])%0x1000, (unsigned)list->array[i].address, (unsigned)(list->array[i].next)%0x1000 );
@@ -22,9 +23,10 @@ void print_list_array(linked_list * list) {
 	}
 }
 
-void print_linked_list(node * head) {
+// Print the linked list's node addresses
+void print_linked_list(linked_list * list) {
 	printf("HEAD");
-	node *n = head;
+	node *n = list->head;
 	while (n) {
 		printf(" -> %X", (unsigned)n);
 		n = n->next;
@@ -153,17 +155,14 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 		}
 		else {
 			left_address = field;
-			//right_address	= field_end;
 			space_between = field_size;
 		}
 
-		
 		if (space_between >= size) {
 			done = true;
 		} else {
 			pre_node = &((*pre_node)->next);
 		}
-
 	}
 
 	if (space_between < size) {
@@ -177,22 +176,13 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 		} else {
 			container->address = left_address;
 			container->size = size;
-			
-			node ** last_next_pointer = &(list->head);
-			
-			while ( ((*last_next_pointer) != NULL)
-						 && ((*last_next_pointer)->address <= left_address) ) {
-				last_next_pointer = &((*last_next_pointer)->next);
+						
+			while ( ((*pre_node) != NULL)
+						 && ((*pre_node)->address <= left_address) ) {
+				pre_node = &((*pre_node)->next);
 			}
-			container->next = (*last_next_pointer);
-			*last_next_pointer = container;
-
-			//			container->next = (*pre_node);
-//			*pre_node = container;
-			
-
-			
-			//add_node_to_linked_list(list, container);
+			container->next = (*pre_node);
+			*pre_node = container;
 		}
 		return left_address;
 	}
