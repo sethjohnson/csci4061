@@ -129,19 +129,36 @@ long bytes_after(void * field, int field_size, const node * n) {
 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
 	bool done = false;
+	void * left_address;
+	void * right_address;
+	long space_between = 0;
 	
 	node * pre_node = (list->head);
 	
 	while (!done) {
-		if (bytes_after(field, field_size, pre_node) >= size) {
+		
+		if (pre_node != NULL) {
+			left_address = (pre_node->address + pre_node->size);
+			if (pre_node->next != NULL) {
+				right_address = pre_node->next->address;
+			} else {
+				right_address = field+field_size;
+			}
+			
+			space_between = right_address-left_address;
+		}
+		else {
+			space_between = field_size;
+		}
+
+		
+		if (space_between >= size) {
 			done = true;
 		} else {
 			(pre_node) = (pre_node)->next;
 		}
 
 	}
-	if((pre_node))
-	printf("Found %d bytes after %X\n", bytes_after(field, field_size, pre_node), (pre_node)->address+(pre_node)->size);
 
 	if ((pre_node) == NULL) {
 		add_value_to_linked_list(list, field, size);
