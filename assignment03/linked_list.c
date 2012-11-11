@@ -34,9 +34,9 @@ void print_linked_list(linked_list * list) {
 	printf(" -> X \n");
 }
 
-
+// Wrapper for the initialization function which accepts an initial node count
 int init_linked_list(linked_list * list) {
-	return init_linked_list_with_node_count(list, INITIAL_NODE_MAX);
+	return init_linked_list_with_node_count(list, INITIAL_NODE_COUNT);
 }
 
 int init_linked_list_with_node_count(linked_list * list, int initial_count) {
@@ -54,6 +54,8 @@ int init_linked_list_with_node_count(linked_list * list, int initial_count) {
 	return 0;
 }
 
+// Find the next unused node in the array and claim it as being a part of the linked list.
+// Returns address of the lucky node.
 node * grab_new_node(linked_list * list) {
 	node* next_available = NULL;
 	node * new_array;
@@ -83,6 +85,11 @@ node * grab_new_node(linked_list * list) {
 	return next_available;
 }
 
+// Not used for this assignment; Contains the logic for aquiring a node to be placed
+// into the linked list from the array, and populates it with data.
+// Then it gets inserted into the list. For the sake of speed,
+// I integrated this logic into the create_and_insert_new_node_with_size
+// method below. 
 void add_value_to_linked_list(linked_list * list, void * value, int size) {
 	
 	node * container = grab_new_node(list);
@@ -97,6 +104,10 @@ void add_value_to_linked_list(linked_list * list, void * value, int size) {
 	}
 }
 
+// Not used for this assignment; Contains the logic for finding where to place
+// a node in the linked list. For the sake of speed,
+// I integrated this logic into the create_and_insert_new_node_with_size
+// method below.
 void add_node_to_linked_list(linked_list * list, node * n) {
 	void * value = n->address; // for comparisons
 	node ** last_next_pointer = &(list->head);
@@ -110,24 +121,6 @@ void add_node_to_linked_list(linked_list * list, node * n) {
 	
 }
 
-long bytes_after(void * field, int field_size, const node * n) {
-	void * left_address;
-	void * right_address;
-	if (n != NULL) {
-		left_address = (n->address + n->size);
-		if (n->next != NULL) {
-			right_address = n->next->address;
-		} else {
-			right_address = field+field_size;
-		}
-		
-		return right_address-left_address;
-	}
-	else {
-		return field_size;
-	}
-	
-}
 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
 	bool done = false;

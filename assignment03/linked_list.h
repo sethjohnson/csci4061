@@ -14,21 +14,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#define INITIAL_NODE_MAX 10
+#define INITIAL_NODE_COUNT 10
 
+// Linked list node
 typedef struct node_s{
 	void* address;
 	int size;
 	struct node_s * next;
 } node;
 
-
+// Linked List controller: Stores all the linked list nodes in an array, and keeps track of which are a part of the list.
 typedef struct {
-	node * array;
-	node * head;
-	node * first_empty_node;
-	int capacity;
-	int count;
+	node * array;	// Array will be used to store the linked lit nodes. It will dynamically increase in size when necessary.
+	node * head;	// Head of linked list
+	node * first_empty_node; // To keep track of where the next unused slot in the node array resides.
+	int capacity; // current max number of nodes. This will increase when necessary.
+	int count; // Nodes in use
 } linked_list;
 
 void print_list_array(linked_list * list);
