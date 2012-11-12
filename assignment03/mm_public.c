@@ -22,6 +22,8 @@ int mm_init (mm_t *MM, int tsz){
 	MM->tsz = tsz;
 	MM->stuff = malloc(tsz);
 	init_linked_list(&MM->tracker);
+	
+	
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_INIT() DEBUG OUTPUT *****\n");
 		if (MM->stuff != NULL) {
@@ -32,12 +34,14 @@ int mm_init (mm_t *MM, int tsz){
 		fprintf(stderr, "***** END MM_INIT() DEBUG OUTPUT *****\n\n");
 	}
 
-	return MM->stuff != NULL ? 0 : -1; // return -1 if 
+	return MM->stuff != NULL ? 0 : -1; // return -1 if malloc failed to allocate
 
 }
 
 void* mm_get (mm_t *MM, int neededSize) {
 	void * return_val = create_and_insert_new_node_with_size(&MM->tracker, MM->stuff, MM->tsz, neededSize);
+	
+	
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_GET() DEBUG OUTPUT *****\n");
 
@@ -59,6 +63,8 @@ void* mm_get (mm_t *MM, int neededSize) {
 
 void mm_put (mm_t *MM, void *chunk) {
 	remove_value_from_linked_list(&MM->tracker, chunk);
+	
+	
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_PUT() DEBUG OUTPUT *****\n");
 		fprintf(stderr, "mm_put() returned the space at 0x%08lx.\n",(unsigned long)chunk);

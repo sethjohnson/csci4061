@@ -5,14 +5,17 @@
 #include <stddef.h>
 
 
-message_t message;     /* current message structure */
 mm_t MM;               /* memory manager will allocate memory for packets */
 int packet_count = 0;       /* how many packets have arrived for current message */
 int total_packet_count = 1;     /* how many packets to be received for the message */
 int NumMessages = 5;   /* number of messages we will receive */
 int current_message=1;         /*current message being received*/
 
+bool should_receive_packet; // This will be flagged when the main function has everything
+														// prepared for a new message or packet.
+
 packet_t get_packet (size) {
+
 	packet_t pkt;
 	static int which;
 	
@@ -34,10 +37,25 @@ packet_t get_packet (size) {
 
 
 void packet_handler(int sig){
+
+	// Though this handler itself will not reenter while operating, it's
+	// possible it may be invoked again before main has the chance to prepare
+	// for it, i.e. executing "current_message++;" or "packet_count = 0;" before
+	// handling a new packet.
+	// Therefore, we have a should_recieve_packet flag which main will manage when
+	// the time is right. If the packet handler is invoked and main has not preped
+	// sufficiently, the packet handler will gracefully return.
+	
+	if (!should_receive_packet) {
+		return;
+	} else {
+		should_receive_packet = false; // Claim this receipt. Main will toggle it later.
+	}
+	
 	static packet_t * packet_array;
 	// This array will hold just enough space for all our packets to be placed
 	// in peice-meal as we receive them.
-	
+
 	int packet_array_index; // We'll use this to iterate through our array after
 													// allocating its space to intitalize the elements, as well
 													// as printing out the data of each packet at the end.
@@ -117,7 +135,6 @@ void packet_handler(int sig){
 		/*Deallocate message*/
 		mm_put(&MM, packet_array);
 	}
-
 }
 
 int main (int argc, char **argv){
@@ -126,40 +143,39 @@ int main (int argc, char **argv){
 	struct sigaction packet_handler_action;
 
 	struct itimerval timer;
-	sigset_t block_mask;
-
-	/* set up alarm handler -- mask all signals within it */
 	
-	sigemptyset (&block_mask);
-	/* Block other terminal-generated signals while handler runs. */
-	sigaddset (&block_mask, SIGINT);
-	sigaddset (&block_mask, SIGQUIT);
-	sigaddset (&block_mask, SIGALRM);
-
+	/* set up alarm handler */
 	packet_handler_action.sa_handler=packet_handler;
-	packet_handler_action.sa_mask = block_mask;
 	packet_handler_action.sa_flags = 0;
+	
+	/*-- mask all signals within it */
+	// This way, our handler will not be interupted by any signals, including another alarm signal itself (by default). 
+	sigfillset(&packet_handler_action.sa_mask);
+	
 	//install signal handler for SIGALRM
 	sigaction(SIGALRM,&packet_handler_action,NULL);
-	
+	//sigprocmask(SIG_SETMASK, &packet_handler_action.sa_mask, NULL);
 	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
 	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 15000;
+	timer.it_interval.tv_usec = 100;
 	timer.it_value = timer.it_interval;
 	setitimer(ITIMER_REAL, &timer, NULL);
 	
-	message.num_packets = 0;
+	
 	mm_init (&MM, 80);
+	
+	
 	for (message_number=1; message_number<=NumMessages; message_number++) {
-		while (packet_count < total_packet_count)
+		while (packet_count < total_packet_count) {
+			//We're ready for packets!
+			should_receive_packet = true;
 			pause();
-		
+		}
+		// We've collected all the packets for that message!
+
 		// reset these for next message
-		total_packet_count = 1;
 		packet_count = 0;
-		//message.num_packets = 0;
 		current_message++;
-		// anything else?
 		
 	}
 	/* Deallocate memory manager */

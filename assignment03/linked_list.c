@@ -122,6 +122,9 @@ void add_node_to_linked_list(linked_list * list, node * n) {
 }
 
 
+// Contains the accumulated logic for finding a space between two nodes of the
+// linked list, creating a new node representing the space requested, and
+// returning the address of the requested space. 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
 	bool done = false;
 	void * left_address = field;
