@@ -26,11 +26,8 @@ int mm_init (mm_t *MM, int tsz){
 	
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_INIT() DEBUG OUTPUT *****\n");
-		if (MM->stuff != NULL) {
+		if (MM->stuff != NULL)
 					fprintf(stderr, "Initialzed %d bytes at 0x%08lX for MM at 0x%08lX.\n",tsz, (unsigned long)(MM->stuff), (unsigned long)(MM));
-		}
-
-		
 		fprintf(stderr, "***** END MM_INIT() DEBUG OUTPUT *****\n\n");
 	}
 
@@ -82,17 +79,22 @@ void mm_release (mm_t *MM) {
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_RELEASE() DEBUG OUTPUT *****\n");
 		fprintf(stderr, "released the %d bytes managed by MM at 0x%08lX.\n",MM->tsz, (unsigned long)MM);
-		
 		fprintf(stderr, "***** END MM_RELEASE() DEBUG OUTPUT *****\n\n");
 	}
+	// Clean up the linked list's array:
 	destroy_linked_list(&(MM->tracker));
+	
+	// Clean up our field of memory:
 	free(MM->stuff);
+	
+	// Give the memory manager meaningful bookkeeping data in case someone tries
+	// to use it:
 	MM->stuff = NULL;
 	MM->tsz = 0;
 
 }
 
-//Print a nice horizintal map of what memory is being used
+//Print a nice horizontal map of what memory is being used
 void print_memory(mm_t *MM) {
 	fputc('|', stderr);
 	fflush(stderr);

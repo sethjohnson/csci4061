@@ -14,11 +14,11 @@ void print_list_array(linked_list * list) {
 	print_linked_list(list);
 	printf("%d/%d nodes in use.\n",list->count, list->capacity);
 	for (i = 0; i < list->capacity; i++) {
-		printf("| %3d | 0x..%03lx | 0x%08lX | 0x..%03lx |", i, (unsigned long)&(list->array[i])%0x1000, (unsigned long)list->array[i].address, (unsigned long)(list->array[i].next)%0x1000 );
+		printf("| %3d | 0x..%03lx | 0x%010lx | 0x..%03lx |", i, (unsigned long)&(list->array[i])/*%0x1000*/, (unsigned long)list->array[i].address, (unsigned long)(list->array[i].next)/*%0x1000*/ );
 		if (list->first_empty_node == &(list->array[i])) {
 			printf(" <-- First Empty");
 			
-		}
+		} 
 		printf("\n");
 	}
 }
@@ -28,10 +28,10 @@ void print_linked_list(linked_list * list) {
 	printf("HEAD");
 	node *n = list->head;
 	while (n) {
-		printf(" -> %lX", (unsigned long)n);
+		printf(" -> %lx", (unsigned long)n);
 		n = n->next;
 	}
-	printf(" -> X \n");
+	printf(" -> NULL \n");
 }
 
 // Wrapper for the initialization function which accepts an initial node count
@@ -57,9 +57,11 @@ int init_linked_list_with_node_count(linked_list * list, int initial_count) {
 // Find the next unused node in the array and claim it as being a part of the linked list.
 // Returns address of the lucky node.
 node * grab_new_node(linked_list * list) {
+	int old_capacity =list->capacity;
+	int index_of_first_empty_node_pointer = list->first_empty_node - list->array;
 	node* next_available = NULL;
 	node * new_array;
-	if (list->capacity == list->count) {
+	if (list->capacity-1 == list->count) {
 		// If we've run out of nodes, we will take the time to double the node array.
 		if((new_array = realloc(list->array, list->capacity*2)) == NULL) {
 			// realloc should, worst case, leave our array right where it is.
@@ -71,6 +73,10 @@ node * grab_new_node(linked_list * list) {
 		list->capacity = list->capacity*2;
 		
 	}
+	memset(list->array + old_capacity, 0, (list->capacity - old_capacity)*sizeof(node) );
+	
+	list->first_empty_node = list->array + index_of_first_empty_node_pointer;
+	
 	if ((next_available = list->first_empty_node)->next == NULL) {
 		// Pointing to a node that has never been used before
 		// (And thusly no nodes after it have been used)
@@ -84,6 +90,7 @@ node * grab_new_node(linked_list * list) {
 	list->count++;
 	return next_available;
 }
+
 
 // Not used for this assignment; Contains the logic for aquiring a node to be placed
 // into the linked list from the array, and populates it with data.
@@ -126,74 +133,95 @@ void add_node_to_linked_list(linked_list * list, node * n) {
 // linked list, creating a new node representing the space requested, and
 // returning the address of the requested space. 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
-	bool done = false;
-	void * left_address = field;
-	void * right_address = NULL;
-	long space_between = 0;
-	node * container;
+	const node ** const head = &(list->head);
+	node * new_node;
 	
-	void * field_end = field+field_size;
+	void * field_end = field+field_size;	// Here we calculate the byte bookending the
+																				// farthest reach of the memory field we're
+																				// investigating. 
+	
+	void * left_address = field;					// left_address marks the first available
+																				// byte of the space nominated as canditate
+																				// for hosting our space.
+	void * right_address = field_end;			// right_address, in turn, marks the byte
+																				// immedeately after this potential host
+																				// byte string. Together, their difference
+																				// will determine whether there is enough space
+																				// within the candidate to host the memory needed.
+	
+	node ** next_pointer = &(list->head); // pre_node is now a reference to the pointer
+																				// leading us to the node we're currently looking
+																				// at. At the start, this is either NULL (in
+																				// the case of an empty list), or the first
+																				// node of the list.
+	int x;
 
-	node ** pre_node;
-	(pre_node) = &(list->head);
-	if ((*pre_node) != NULL) {
-		right_address = (*pre_node)->address;
-	} else {
-		right_address = field_end;
-		done = true;
+	
+		
+	
+	// First off, if the next_pointer is null already, there were no nodes in this
+	// linked list. The while loop below won't even finish evaluating its condition,
+	// as the first part will drop it out immedeately.
+	// In the event it's not null, then there's a first node in the list, and the
+	// right_address can't be the far bound of the memory field at this point.
+	// (maybe later; but it can't span accross this first node.
+	//
+	
+	if ((*next_pointer) != NULL)
+		// Then there's at least one node! Adjust the right_address to close the
+		// canditate domain before spilling into the first node's domain.
+		right_address = (*next_pointer)->address;
+	
+	
+	while ((*next_pointer) != NULL && ((right_address-left_address) < size)) {
+		
+		// If we've made it this far, we must have moved through a node, and
+		// the left_address should be adjusted so that it now points to the byte
+		// immedeately following the domain of this last node.
+		
+		left_address = ((*next_pointer)->address + (*next_pointer)->size);
+		
+
+		if ((*next_pointer)->next != NULL)
+			// If there is a node following, then the right_address is the first byte
+			// of the following node's domain.
+			right_address = (*next_pointer)->next->address;
+		else
+			// otherwise, there's no node following, and all the memory to the end of
+			// the field can potentially be used. 
+			right_address = field_end;
+		
+		
+		// slide the next_pointer along!
+		next_pointer = &((*next_pointer)->next);
 	}
-	space_between = right_address-left_address;
-
-	if (!(space_between >= size)) {
-		while (!done) {
-			
-			if ((*pre_node) != NULL) {
-				left_address = ((*pre_node)->address + (*pre_node)->size);
-				if ((*pre_node)->next != NULL) {
-					right_address = (*pre_node)->next->address;
-				} else {
-					right_address = field_end;
-					done = true;// Reached the end of the line!
-				}
-				
-				space_between = right_address-left_address;
-			}
-			else {
-				left_address = field;
-				space_between = field_size;
-			}
-			
-			if (space_between >= size) {
-				done = true;
-			} else {
-				pre_node = &((*pre_node)->next);
-			}
-		}
-
-	}
 	
 	
-	if (space_between < size) {
+	if ((right_address-left_address) < size) {
+		// Even when all was said and done, there was still no large enough gap for the memory requested.
 		fprintf(stderr, "WARNING – Memory Manager does not have sufficient space for %d-byte allocation.\n",size);
 		return NULL;
-	} else {
-		
-		if ((container = grab_new_node(list)) == NULL) {
-			fprintf(stderr, "ERROR – Memory Manager internal error: Ran out of nodes for memory tracking and could not allocate more.\n");
-			
-		} else {
-			container->address = left_address;
-			container->size = size;
-						
-			while ( ((*pre_node) != NULL)
-						 && ((*pre_node)->address <= left_address) ) {
-				pre_node = &((*pre_node)->next);
-			}
-			container->next = (*pre_node);
-			*pre_node = container;
-		}
-		return left_address;
 	}
+	
+	if ((new_node = grab_new_node(list)) == NULL) {
+		// Failed to aquire a node from our stock for the memory required.
+		// can
+		fprintf(stderr, "ERROR – Memory Manager internal error: Ran out of nodes for memory tracking and could not allocate more.\n");
+		return NULL;
+		
+	}
+	// Configure the new node
+	new_node->address = left_address;
+	new_node->size = size;
+	
+	// Insert the new node right between whatever next_pointer had belonged to
+	// and whatever it was pointing to:
+	new_node->next = (*next_pointer);
+	*next_pointer = new_node;
+	
+	// And of course, let's give the caller the address they requested!
+	return left_address;
+	
 }
 
 int remove_value_from_linked_list(linked_list * list, void * value) {

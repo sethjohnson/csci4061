@@ -9,12 +9,13 @@
 #ifndef assignment03_linked_list_h
 #define assignment03_linked_list_h
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #define INITIAL_NODE_COUNT 10
+#define EXPANSION_FACTOR 2
+#define EXPANSION_STEP 1
 
 // Linked list node
 typedef struct node_s{

@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stddef.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 
 mm_t MM;               /* memory manager will allocate memory for packets */
 int packet_count = 0;       /* how many packets have arrived for current message */
@@ -148,21 +149,37 @@ int main (int argc, char **argv){
 	packet_handler_action.sa_handler=packet_handler;
 	packet_handler_action.sa_flags = 0;
 	
-	/*-- mask all signals within it */
+	/*-- mask all signals within [the alarm handler]. */
 	// This way, our handler will not be interupted by any signals, including another alarm signal itself (by default). 
 	sigfillset(&packet_handler_action.sa_mask);
 	
+	// Note: I don't understand why we need to mask all signals, since the only problem that could arise
+	// would be the interference of the alarm firing off the receipt of another packet while a packet
+	// is currently being processed. And in that event, all signal handlers automatically block
+	// the signal which they handle. But! The comment provided said all signals must be blocked,
+	// and it simply results in not being able to interrupt the handler; any signals received
+	// during packet processing will be handled once the packet_handler has finished dealing
+	// with its packet.
+	
+	
+	
 	//install signal handler for SIGALRM
-	sigaction(SIGALRM,&packet_handler_action,NULL);
+	if(sigaction(SIGALRM,&packet_handler_action,NULL) == -1) {
+		perror("Failed to install alarm signal handler: ");
+		exit(-1);
+	}
+	
 	//sigprocmask(SIG_SETMASK, &packet_handler_action.sa_mask, NULL);
 	/* turn on alarm timer ... use  INTERVAL and INTERVAL_USEC for sec and usec values */
 	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 100;
+	timer.it_interval.tv_usec = 100; // Should be able to handle extremely small intervals!
 	timer.it_value = timer.it_interval;
 	setitimer(ITIMER_REAL, &timer, NULL);
 	
-	
-	mm_init (&MM, 80);
+	// Based on the current logic of the packet generation, the most memory that
+	// will be required is the max packet count (defined by NumMessages) times the
+	// size of a packet. Might as well not hog any more memory than we know we'll need!
+	mm_init (&MM, NumMessages*sizeof(packet_t));
 	
 	
 	for (message_number=1; message_number<=NumMessages; message_number++) {
