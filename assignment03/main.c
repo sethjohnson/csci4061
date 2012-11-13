@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 
-#define TOTAL_SIZE 100
+#define TOTAL_SIZE 25
 int main() {
 	mm_t man;
 	mm_init(&man, TOTAL_SIZE);
@@ -25,7 +25,7 @@ int main() {
 
 	char*cs[TOTAL_SIZE];
 	
-	for (i = 0; i < TOTAL_SIZE+1; i++) {
+	for (i = 0; i < TOTAL_SIZE; i++) {
 		cs[i] = (char*)mm_get(&man, sizeof(char));
 	}
 //	printf("Stuff runs from %X to %X!\n", man.stuff, man.stuff + man.tsz);

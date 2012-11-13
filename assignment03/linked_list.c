@@ -8,6 +8,7 @@
 
 #include "linked_list.h"
 
+// calculate the offset of human-readable indexes to C-style indexes
 int idx(int i) {
 	return i-1;
 }
@@ -15,10 +16,10 @@ int idx(int i) {
 // Print the contents of the node array
 void print_list_array(linked_list * list) {
 	int i;
-	//print_linked_list(list);
+	print_linked_list(list);
 	printf("%d/%d nodes in use.\n",list->count, list->capacity);
-	for (i = 1; i <= list->capacity; i++) {
-		printf("| %3d | 0x..%03lx | 0x%010lx | %3d |", i, (unsigned long)&(list->array[idx(i)])/*%0x1000*/, (unsigned long)list->array[idx(i)].address, (unsigned long)(list->array[idx(i)].next_index)/*%0x1000*/ );
+	for (i = 1; i <= list->capacity+2; i++) {
+		printf("| %3d | 0x..%03lx | 0x%010lx | %2d | %3d |", i, (unsigned long)&(list->array[idx(i)])/*%0x1000*/, (unsigned long)list->array[idx(i)].address, list->array[idx(i)].size, (list->array[idx(i)].next_index) );
 		if (list->first_empty_node_index == i) {
 			printf(" <-- First Empty");
 			
@@ -32,7 +33,7 @@ void print_linked_list(linked_list * list) {
 	printf("HEAD");
 	int n = list->head_index;
 	while (n != NULL_INDEX) {
-		printf(" -> %lx", (unsigned long)n);
+		printf(" -> %d", n);
 		n = list->array[idx(n)].next_index;
 	}
 	printf(" -> NULL \n");
@@ -59,31 +60,52 @@ int init_linked_list_with_node_count(linked_list * list, int initial_count) {
 }
 
 // Find the next unused node in the array and claim it as being a part of the linked list.
-// Returns index of the lucky node.
-int grab_new_node(linked_list * list) {
+// Returns index of the lucky node. We can also pass it an reference to an index that we want
+// adjusted in the event the memory migrates.
+int grab_new_node(linked_list * list, int ** reference_index) {
 	int old_capacity =list->capacity;
 	int next_available_index = NULL_INDEX;
 	node * new_array;
+	long offset_for_reference_index;
 	if (list->capacity == list->count) {
+		
 		// If we've run out of nodes, we will take the time to double the node array.
-		print_list_array(list);
-		printf("%d\n",list->array[idx(3)].next_index);
-		if((new_array = realloc(list->array, list->capacity*2*(sizeof(node)))) == NULL) {
-			// realloc should, worst case, leave our array right where it is.
-			fprintf(stderr, "Something bad happened with realloc, and we lost the array. Aborting.\n");
-			exit(-1);
+		if((new_array = realloc(list->array, (list->capacity)*EXPANSION_FACTOR*sizeof(node))) != NULL) {
+			
+			offset_for_reference_index = (char*)(*reference_index) - (char*)(list->array); // since we might be shifting our memory
+																																	// around, we want a relative location
+																																	// of the reference we're supposed to take care of.
+			// Assume our re-allocation was successful.
+			list->capacity = list->capacity*EXPANSION_FACTOR; // Book-keep that our node count has expanded!
+		} else {
+			
+			// realloc should, worst case, leave our array right where it is. NULL means the space could not be
+			// increased.
+			fprintf(stderr, "WARNING: Could not find sufficient memory to multiply the the active allocations count by %d. Attempting to add %d new node(s)...\n", EXPANSION_FACTOR, EXPANSION_STEP);
+			
+			
+			// Undesired, but if we couldn't double the space, at least try to grow it by one node.
+			// Hopefully some space will free up soon...
+			if((new_array = realloc(list->array, (list->capacity + EXPANSION_STEP)*sizeof(node))) != NULL) {
+				list->capacity = list->capacity + EXPANSION_STEP;
+
+			} else {
+				// realloc should, worst case, leave our array right where it is. NULL means the space could not be
+				// increased.
+				fprintf(stderr, "WARNING: Memory is really tight right now. Could not add %d new allocation node(s).\n"
+								"Please mm_put some allocations back into the memory manager, or free up some memory \n", EXPANSION_STEP);
+				return NULL_INDEX;
+				
+			}
+			
 		}
-		// Assume our re-allocation was successful.
-		//(in reality, it will be nearly imposible to tell if we didn't get all the space we asked for).
-		list->capacity = list->capacity*2;
 		list->array = new_array;
-		//memset(list->array + old_capacity, 0, (list->capacity - old_capacity)*sizeof(node) );
-
+		*reference_index = (int *)((char*)list->array + offset_for_reference_index);
+		memset(list->array + old_capacity, 0, (list->capacity - old_capacity)*sizeof(node) );
+		
 	}
-	printf("%d\n",list->array[idx(3)].next_index);
-
-	print_list_array(list);
-
+	
+	
 	next_available_index = list->first_empty_node_index;
 	
 	if (list->array[idx(next_available_index)].next_index == NULL_INDEX) {
@@ -97,10 +119,11 @@ int grab_new_node(linked_list * list) {
 		list->first_empty_node_index = list->array[idx(next_available_index)].next_index;
 	}
 	list->count++;
-	print_list_array(list);
-
+	
 	return next_available_index;
+
 }
+
 
 /*
 // Not used for this assignment; Contains the logic for aquiring a node to be placed
@@ -144,7 +167,6 @@ void add_node_to_linked_list(linked_list * list, node * n) {
 // linked list, creating a new node representing the space requested, and
 // returning the address of the requested space. 
 void * create_and_insert_new_node_with_size(linked_list * list, void * field, int field_size, int size) {
-	const int *  head = &(list->head_index);
 	int new_node_index;
 	
 	void * field_end = field+field_size;	// Here we calculate the byte bookending the
@@ -165,8 +187,6 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 																				// at. At the start, this is either NULL (in
 																				// the case of an empty list), or the first
 																				// node of the list.
-	int x;
-
 	
 		
 	
@@ -214,7 +234,8 @@ void * create_and_insert_new_node_with_size(linked_list * list, void * field, in
 		return NULL;
 	}
 	
-	if ((new_node_index = grab_new_node(list)) == NULL_INDEX) {
+	
+	if ((new_node_index = grab_new_node(list, &next_index_ref)) == NULL_INDEX) {
 		// Failed to aquire a node from our stock for the memory required.
 		// can
 		fprintf(stderr, "ERROR – Memory Manager internal error: Ran out of nodes for memory tracking and could not allocate more.\n");

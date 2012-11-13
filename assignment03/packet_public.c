@@ -1,3 +1,11 @@
+/* CSci4061 F2012 Assignment 3
+ * section: 2
+ * login: joh08230
+ * date: 11/12/12
+ * names: Seth Johnson
+ * id: 4273042 
+ */
+
 #include "packet_public.h"
 #include <string.h>
 #include <unistd.h>
@@ -197,4 +205,5 @@ int main (int argc, char **argv){
 	}
 	/* Deallocate memory manager */
 	mm_release(&MM);
+	return 0;
 }

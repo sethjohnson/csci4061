@@ -1,7 +1,7 @@
 #ifndef MM_PUBLIC
 #define MM_PUBLIC
 
-#define DEBUG 1
+#define DEBUG 0
 #include <sys/time.h>
 #include <signal.h>
 

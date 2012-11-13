@@ -1,0 +1,32 @@
+Memory Manager
+
+/* CSci4061 F2012 Assignment 3
+ * section: 2 * login: joh08230
+ * date: 11/12/12
+ * names: Seth Johnson
+ * id: 4273042
+ */
+
+1. A list of all files included in this submission:
+  README  -  This Readme file
+  Makefile  -  The makefile for building the program
+  linked_list.c  -  The implementation for the linked list used in the memory manager
+  linked_list.h  -  The interface for the linked list used in the memory manager
+  mm_public.c  -  The implementation for the memory manager
+  mm_public.h  -  The interface for the memory manager
+  packet_public.c  -  The file containing the logic for the packet simulator
+  packet_public.h  -  The file containing any additional information needed for the packet simulator
+  main_malloc.c  -  A file containing a basic test for the speed of system memory allocation calls
+  main_mm.c  -  A file containing a basic test for the speed of memory allocation calls using the included memory manager
+
+2. How to use the program from the shell:
+  To build the packet simulator:
+  $ make packet
+  To run the packet simulator:
+  $ packet
+
+3. What exactly your program does (briefly).
+  On the front end, packet is a simulation of a packet manager, receiving fabricated packets of messages and storing them to memory before displaying complete messages.
+  This program uses a memory manager I created, which is meant to replace normal calls to malloc and free. The memory manager uses a linked list to keep track of which pieces of memory are currently being used by the client program. This memory manager is contained in the mm_public files and the linked_list files. The linked list stores all its nodes in an array (which can be expanded when more nodes are needed), and uses indexes to emulate pointers (in the event the nodes need to be migrated to a larger memory location.)
+4. Which group member was responsible for which part of the project.
+  I, Seth Johnson, completed all the work on this project. 

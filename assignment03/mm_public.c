@@ -37,7 +37,7 @@ int mm_init (mm_t *MM, int tsz){
 
 void* mm_get (mm_t *MM, int neededSize) {
 	void * return_val = create_and_insert_new_node_with_size(&MM->tracker, MM->stuff, MM->tsz, neededSize);
-	
+
 	
 	if (DEBUG) {
 		fprintf(stderr, "\n***** BEGIN MM_GET() DEBUG OUTPUT *****\n");
@@ -105,7 +105,7 @@ void print_memory(mm_t *MM) {
 	char * runner = start;
 	
 	while (n != NULL_INDEX) {
-		while (runner < (char*)list->array[idx(n)].address) {
+		while (runner < (char*)(list->array[idx(n)].address)) {
 			fputc('_', stderr);
 			runner++;
 		}
@@ -119,7 +119,7 @@ void print_memory(mm_t *MM) {
 		}
 		fflush(stderr);
 
-		n = list->array[idx(n)].next_index;
+		n = list->array[n].next_index;
 	}
 	while (runner < ((char*)start)+MM->tsz) {
 		fputc('_', stderr);
