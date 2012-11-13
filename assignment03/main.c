@@ -20,6 +20,9 @@ int main() {
 	int j;
 	j = gettimeofday (&times, (void *)NULL);
 	int i;
+	
+	
+
 	char*cs[TOTAL_SIZE];
 	
 	for (i = 0; i < TOTAL_SIZE+1; i++) {

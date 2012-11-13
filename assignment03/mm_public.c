@@ -98,14 +98,14 @@ void mm_release (mm_t *MM) {
 void print_memory(mm_t *MM) {
 	fputc('|', stderr);
 	fflush(stderr);
-
-	node * n = MM->tracker.head;
+	linked_list	*list = &MM->tracker;
+	int n = list->head_index;
 	void* start = MM->stuff;
 
 	char * runner = start;
 	
-	while (n != NULL) {
-		while (runner < (char*)n->address) {
+	while (n != NULL_INDEX) {
+		while (runner < (char*)list->array[idx(n)].address) {
 			fputc('_', stderr);
 			runner++;
 		}
@@ -113,13 +113,13 @@ void print_memory(mm_t *MM) {
 
 		fputc('#', stderr);
 		runner++;
-		while (runner < (char*)n->address + n->size) {
+		while (runner < (char*)list->array[idx(n)].address + list->array[idx(n)].size) {
 			fputc('=', stderr);
 			runner++;
 		}
 		fflush(stderr);
 
-		n = n->next;
+		n = list->array[idx(n)].next_index;
 	}
 	while (runner < ((char*)start)+MM->tsz) {
 		fputc('_', stderr);
