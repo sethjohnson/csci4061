@@ -1,3 +1,12 @@
+ # CSci4061 F2012 Assignment 3
+ # section: 2
+ # login: joh08230
+ # date: 11/12/12
+ # names: Seth Johnson
+ # id: 4273042
+ 
+
+
 CC=gcc
 CFLAGS=-g -Wall
 LIB32=/usr/lib

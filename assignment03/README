@@ -1,10 +1,15 @@
 Memory Manager
 
 /* CSci4061 F2012 Assignment 3
- * section: 2 * login: joh08230
- * date: 11/12/12
- * names: Seth Johnson
- * id: 4273042
+
+* section: 2
+* login: joh08230
+
+* date: 11/12/12
+
+* names: Seth Johnson
+
+* id: 4273042
  */
 
 1. A list of all files included in this submission:
@@ -26,7 +31,13 @@ Memory Manager
   $ packet
 
 3. What exactly your program does (briefly).
-  On the front end, packet is a simulation of a packet manager, receiving fabricated packets of messages and storing them to memory before displaying complete messages.
-  This program uses a memory manager I created, which is meant to replace normal calls to malloc and free. The memory manager uses a linked list to keep track of which pieces of memory are currently being used by the client program. This memory manager is contained in the mm_public files and the linked_list files. The linked list stores all its nodes in an array (which can be expanded when more nodes are needed), and uses indexes to emulate pointers (in the event the nodes need to be migrated to a larger memory location.)
+  On the front end, packet is a simulation of a packet manager, receiving fabricated packets of messages and storing them to memory before displaying complete messages. The correct output for the 5 messages it will be receiving is:
+	aaaaaaa
+  aaaaaaabbbbbbb
+  aaaaaaabbbbbbbccccccc
+  aaaaaaabbbbbbbcccccccddddddd
+  aaaaaaabbbbbbbcccccccdddddddeeeeeee
+  
+	This program uses a memory manager I created, which is meant to replace normal calls to malloc and free. The memory manager uses a linked list to keep track of which pieces of memory are currently being used by the client program. This memory manager is contained in the mm_public files and the linked_list files. The linked list stores all its nodes in an array (which can be expanded when more nodes are needed), and uses indexes to emulate pointers (in the event the nodes need to be migrated to a larger memory location.)
 4. Which group member was responsible for which part of the project.
   I, Seth Johnson, completed all the work on this project. 

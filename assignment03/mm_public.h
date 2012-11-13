@@ -1,3 +1,12 @@
+/* CSci4061 F2012 Assignment 3
+ * section: 2
+ * login: joh08230
+ * date: 11/12/12
+ * names: Seth Johnson
+ * id: 4273042
+ */
+
+
 #ifndef MM_PUBLIC
 #define MM_PUBLIC
 
@@ -19,9 +28,9 @@
 
 
 typedef struct {
-	void *stuff;
-	linked_list tracker;
-	int tsz;
+  void *stuff;
+  linked_list tracker;
+  int tsz;
 } mm_t;
 
 void print_memory(mm_t *MM);
