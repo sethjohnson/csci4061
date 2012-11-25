@@ -21,7 +21,7 @@ void print_list_array(linked_list * list) {
   printf("%d/%d nodes in use.\n",list->count, list->capacity);
   printf("|index| node address| memory managed|size| next|\n");
   printf("|-----|-------------|---------------|----|-----|\n");
-  for (i = 1; i <= list->capacity+2; i++) {
+  for (i = 1; i <= list->capacity; i++) {
     printf("| %3d | 0x%010lx | 0x%010lx | %2d | %3d |", i, (unsigned long)&(list->array[idx(i)])/*%0x1000*/, (unsigned long)list->array[idx(i)].address, list->array[idx(i)].size, (list->array[idx(i)].next_index) );
     if (list->first_empty_node_index == i) {
       printf(" <-- First Empty");

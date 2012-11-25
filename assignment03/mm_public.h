@@ -10,7 +10,7 @@
 #ifndef MM_PUBLIC
 #define MM_PUBLIC
 
-#define DEBUG 0
+#define DEBUG 1
 #include <sys/time.h>
 #include <signal.h>
 
