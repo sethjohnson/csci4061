@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <curses.h>
 #include <string.h>
+#include <stdbool.h>
 #include "textbuff.h"
 
 #define CTRL(c) ((c) & 037)
@@ -14,10 +15,13 @@ typeof (Y) y_ = (Y);          \
 
 
 // Defined constants to be used with the message data-structure
-#define EDIT 0
-#define SAVE 1
-#define QUIT 2
-#define DEL  3
+typedef enum message_command_t {
+  EDIT,
+  SAVE,
+  QUIT,
+  DEL
+} message_command;
+
 
 // Maximum length of the message passing queue
 #define QUEUEMAX 20
@@ -25,17 +29,49 @@ typeof (Y) y_ = (Y);          \
 
 // Data structure for message passing queue used to communicate
 // between the router and UI thread
-struct message_t{
+typedef struct message_t{
 	int data;
 	int row;
 	int col;
-	int command;
+	message_command command;
 	struct message_t *next;
-} typedef message;
+  struct message_t *previous;
+}  message;
 
+message * new_message(int data, int row, int col, message_command cmd) {
+  message * result;
+  if ((result = (message*)calloc(sizeof(message), 1))) {
+    result->data = data;
+    result->row = row;
+    result->col = col;
+    result->command = cmd;
+  }
+
+  return result;
+}
+
+typedef struct message_queue_t {
+  int capacity;
+  int number_of_messages;
+  message * first_message;
+  message * last_message;
+} message_queue;
+
+message_queue the_queue;
+
+
+void init_queue(message_queue * mq, int num) {
+  mq->first_message = NULL;
+  mq->last_message = NULL;
+  mq->capacity = num;
+  mq->number_of_messages = 0;
+}
 
 // mutex to control access to the text buffer
 pthread_mutex_t text_ = PTHREAD_MUTEX_INITIALIZER;
+
+// mutex to control access to the message queue
+pthread_mutex_t msgq_ = PTHREAD_MUTEX_INITIALIZER;
 
 
 // The current position of the cursor in the screen
@@ -52,6 +88,14 @@ int view_max;
  * and returns it.
  */
 message* pop(){
+  pthread_mutex_lock(&msgq_);
+  message* result = the_queue.last_message;
+  if (result != NULL) {
+    the_queue.last_message = the_queue.last_message->previous;
+    the_queue.number_of_messages--;
+  }
+  pthread_mutex_unlock(&msgq_);
+  return result;
 }
 
 
@@ -59,7 +103,24 @@ message* pop(){
  * Inserts a message at the back of the message queue
  */
 void push(message* m_){
-	
+  printf("Pushing...\n");
+  pthread_mutex_lock(&msgq_);
+  
+  if (the_queue.number_of_messages == 0) {
+    the_queue.last_message = m_;
+  }
+  if (m_ && the_queue.number_of_messages < QUEUEMAX) {
+    if (the_queue.first_message != NULL) {
+      m_->next = the_queue.first_message;
+      the_queue.first_message->previous = m_;
+    }
+    
+    the_queue.first_message=m_;
+    the_queue.number_of_messages++;
+  }
+  printf("Pushed!\n");
+  pthread_mutex_unlock(&msgq_);
+
 }
 
 
@@ -84,7 +145,12 @@ int redraw(int min_line, int max_line,int r_, int c_, int insert_){
 			break;
 		int j;
 		for(j=0;j < strlen(line);j++){
-			addch(*(line+j));
+      if (*(line+j) != '\n') {
+        addch(*(line+j));
+      } else {
+        addch('#');
+
+      }
 		}
 		addch('\n');
 	}
@@ -115,29 +181,31 @@ void input_mode(){
 		c = getch();
 		if(c == CTRL('D')){
 			break;
-		}
+		} else if (isprint(c)) {
+      int insert_row = row+view_min;
+      int insert_col = col;
+      
+      //Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
+      insert(insert_row, insert_col, c);
+      
+      // ------------------------------
+      if((col<COLS-1) && (col<LINEMAX-1)){
+        col++;
+      }else{
+        col = 0;
+        
+        
+        if(row < LINES - 2){
+          row++;
+        }else{
+          view_min++;
+          view_max++;
+        }
+      }
+
+    }
 		
-		int insert_row = row+view_min;
-		int insert_col = col;
-		
-		//Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
-		
-		
-		// ------------------------------
-		if((col<COLS-1) && (col<LINEMAX-1)){
-			col++;
-		}else{
-			col = 0;
-			
-			
-			if(row < LINES - 2){
-				row++;
-			}else{
-				view_min++;
-				view_max++;
-			}
-		}
-		redraw(view_min,view_max,row,col,1);
+    redraw(view_min,view_max,row,col,1);
 	}
 	redraw(view_min,view_max,row,col,0);
 }
@@ -233,14 +301,15 @@ void loop(){
  * Function to be used to spawn the UI thread.
  */
 void *start_UI(void *threadid){
-	
+	printf("Starting UI...\n");
 	initscr();
 	cbreak();
 	nonl();
 	noecho();
 	idlok(stdscr, TRUE);
 	keypad(stdscr,TRUE);
-	
+  printf("Starting UI...\n");
+
 	view_min = 0;
 	view_max = LINES-1;
 	
@@ -248,13 +317,14 @@ void *start_UI(void *threadid){
 	
 	refresh();
 	loop();
+  return NULL;
 }
 
 /**
  * Function to be used to spawn the autosave thread.
  */
 void *autosave(void *threadid){
-	
+
 	// This function loops until told otherwise from the router thread. Each loop:
 	
 	// Open the temporary file
@@ -266,29 +336,58 @@ void *autosave(void *threadid){
 }
 
 int main(int argc, char **argv){
-	
+	int error;
 	row = 0;
 	col = 0;
-	
-	// get text file from argv
-	
-	// set up necessary data structures for message passing queue and initialize textbuff
-	
+  char * text_file_path;
+	bool proceed = true;
+  // get text file from argv
+  if (argc != 2) {
+    // Bad input, display proper use!
+    printf("Bad input!\n");
+    exit(1);
+  }
+    text_file_path = strdup(argv[1]);
+  
+  
+  // set up necessary data structures for message passing queue and initialize textbuff
+  init_queue(&the_queue, QUEUEMAX);
+  init_textbuff(text_file_path);
+  
+  
 	// spawn UI thread
-	
+  row = 1;
+  printf("Spawning UI thread...\n");
+	pthread_t ui_thread;
+  if ((error = pthread_create(&ui_thread, NULL, start_UI, (void*)&ui_thread))) {
+    fprintf(stderr, "Failed to create UI thread\n");
+  }
+  
 	// spawn auto-save thread
-	
+  printf("Spawning auto-save thread...\n");
+	pthread_t auto_save_thread;
+  if ((error = pthread_create(&auto_save_thread, NULL, autosave, (void*)&auto_save_thread))) {
+    fprintf(stderr, "Failed to create Auto-save thread\n");
+  }
+  
 	// Main loop until told otherwise
-	
-	// Recieve messages from the message queue
-	
-	// If EDIT then place the edits into the text buffer
-	
-	// If SAVE then save the file additionally delete the temporary save
-	
-	// If QUIT then quit the program and tell the appropriate threads to stop
-	
-	// If DEL then delete the specified character from the text buffer
-	
+	while (proceed) {
+    // Recieve messages from the message queue
+    
+    // If EDIT then place the edits into the text buffer
+    
+    // If SAVE then save the file additionally delete the temporary save
+    
+    // If QUIT then quit the program and tell the appropriate threads to stop
+    
+    // If DEL then delete the specified character from the text buffer
+
+  }
+		
 	// Clean up data structures
+  pthread_join(ui_thread, NULL);
+  pthread_join(auto_save_thread, NULL);
+  free(text_file_path);
 }
+
+
