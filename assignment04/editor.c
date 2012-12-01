@@ -74,6 +74,12 @@ pthread_mutex_t text_ = PTHREAD_MUTEX_INITIALIZER;
 // mutex to control access to the message queue
 pthread_mutex_t msgq_ = PTHREAD_MUTEX_INITIALIZER;
 
+// mutex to
+pthread_mutex_t edit_ = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t tried_edit = PTHREAD_COND_INITIALIZER;
+
+bool edit_succeeded;
 
 // The current position of the cursor in the screen
 int row;
@@ -88,6 +94,8 @@ int view_max;
 // The Text file name
 char * text_file_path;
 
+// Global for termination
+bool game_over;
 /**
  * Removes the first message from the message queue
  * and returns it.
@@ -195,21 +203,33 @@ void input_mode(){
       
       //Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
       
+      pthread_mutex_lock(&edit_);
       push(new_message(c, insert_row, insert_col, EDIT));
-      // ------------------------------
-      if((col<COLS-1) && (col<LINEMAX-1)){
-        col++;
-      }else{
-        col = 0;
-        
-        
-        if(row < LINES - 2){
-          row++;
+      edit_succeeded = false;
+      pthread_cond_wait(&tried_edit, &edit_);
+      
+      if (edit_succeeded) {
+        if((col<COLS-1) && (col<LINEMAX-1)){
+          col++;
         }else{
-          view_min++;
-          view_max++;
+          col = 0;
+          
+          
+          if(row < LINES - 2){
+            row++;
+          }else{
+            view_min++;
+            view_max++;
+          }
         }
+
+      } else {
+        // A character was not successfully inserted.
+        flash();
+
       }
+      pthread_mutex_unlock(&edit_);
+      // ------------------------------
 
     }
 		
@@ -227,101 +247,102 @@ void loop(){
   int del_row;
   int del_col;
 	int n;
-	while(1){
+	while(!game_over){
 		move(row,col);
 		refresh();
 		c = getch();
-		
-		switch(c){
-			case 'h':
-			case KEY_LEFT:
-				if(col > 0)
-					col--;
-				else
-					flash();
-				break;
-			case 'j':
-			case KEY_DOWN:
-				if(row < LINES -2)
-					row++;
-				else {
-          pthread_mutex_lock(&text_);
-          n = getLineLength();
-          pthread_mutex_unlock(&text_);
-					if(view_max+1<=n) {
-            
-						redraw(++view_min,++view_max,row,col,0);
-          } else {
+		if (c != ERR) {
+      switch(c){
+        case 'h':
+        case KEY_LEFT:
+          if(col > 0)
+            col--;
+          else
             flash();
-
+          break;
+        case 'j':
+        case KEY_DOWN:
+          if(row < LINES -2)
+            row++;
+          else {
+            pthread_mutex_lock(&text_);
+            n = getLineLength();
+            pthread_mutex_unlock(&text_);
+            if(view_max+1<=n) {
+              
+              redraw(++view_min,++view_max,row,col,0);
+            } else {
+              flash();
+              
+            }
+            
           }
+          
+          break;
+        case 'k':
+        case KEY_UP:
+          if(row > 0)
+            row--;
+          else
+            if(view_min-1 > -1)
+              redraw(--view_min,--view_max,row,col,0);
+            else
+              flash();
+          break;
+        case 'l':
+        case KEY_RIGHT:
+          if((col<COLS-1) && (col<LINEMAX-1))
+            col++;
+          else
+            flash();
+          break;
+        case 'i':
+        case KEY_IC:
+          input_mode();
+          break;
+        case 'd':
+          del_row = row+view_min;
+          del_col = col;
+          // Delete the entire line
+          push(new_message(1, del_row, del_col, DEL));
+          redraw(view_min,view_max,row,col,0);
+          break;
+        case 'x':
+          //Delete one character
+          del_row = row+view_min;
+          del_col = col;
+          
+          // Add code here to delete character (del_row, del_col) from textbuf
+          push(new_message(0, del_row, del_col, DEL));
+          
+          // ------------------------------
+          
+          redraw(view_min,view_max,row,col,0);
+          break;
+        case 'w':
+          flash();
+          // Add code here to save the textbuf file
+          push(new_message(0, 0, 0, SAVE));
+          
+          
+          // ------------------------------
+          
+          break;
+        case 'q':
+          
+          // Add code here to quit the program
+          push(new_message(0, 0, 0, QUIT));
+          // ------------------------------
+          break;
+        default:
+          flash();
+          break;
+      }
 
-        }
-         
-				break;
-			case 'k':
-			case KEY_UP:
-				if(row > 0)
-					row--;
-				else
-					if(view_min-1 > -1)
-						redraw(--view_min,--view_max,row,col,0);
-					else
-						flash();
-				break;
-			case 'l':
-			case KEY_RIGHT:
-				if((col<COLS-1) && (col<LINEMAX-1))
-					col++;
-				else
-					flash();
-				break;
-			case 'i':
-			case KEY_IC:
-				input_mode();
-				break;
-      case 'd':
-        del_row = row+view_min;
-        del_col = col;
-        // Delete the entire line
-        push(new_message(1, del_row, del_col, DEL));
-				redraw(view_min,view_max,row,col,0);
-        break;
-			case 'x':
-				flash();
-				//Delete one character
-				del_row = row+view_min;
-				del_col = col;
-				
-				// Add code here to delete character (del_row, del_col) from textbuf
-        push(new_message(0, del_row, del_col, DEL));
+    }
+  }
+  endwin();
 
-				// ------------------------------
-				
-				redraw(view_min,view_max,row,col,0);
-				break;
-			case 'w':
-				flash();
-				// Add code here to save the textbuf file
-        push(new_message(0, 0, 0, SAVE));
-
-				
-				// ------------------------------
-				
-				break;
-			case 'q':
-				endwin();
-				
-				// Add code here to quit the program
-        push(new_message(0, 0, 0, QUIT));
-
-				// ------------------------------
-			default:
-				flash();
-				break;
-		}
-		
-	}
 }
 
 
@@ -336,8 +357,7 @@ void *start_UI(void *threadid){
 	noecho();
 	idlok(stdscr, TRUE);
 	keypad(stdscr,TRUE);
-  printf("Starting UI...\n");
-
+  nodelay(stdscr, TRUE);
 	view_min = 0;
 	view_max = LINES-1;
 	
@@ -348,11 +368,34 @@ void *start_UI(void *threadid){
   return NULL;
 }
 
+int save(const char * filename) {
+  FILE * file_p;
+  
+  char * line;
+  
+  int i, n;
+  // This function loops until told otherwise from the router thread. Each loop:
+    // Open the temporary file
+    file_p = fopen(filename, "w+");
+    
+    // Read lines from the text buffer and save them to the temporary file
+    n = getLineLength();
+    
+    for ( i = 0; i < n;  i++) {
+      getLine(i, &line);
+      
+      fwrite(line, strlen(line), sizeof(char), file_p);
+      free(line);
+    }
+    
+    fclose(file_p);
+
+}
+
 /**
  * Function to be used to spawn the autosave thread.
  */
 void *autosave(void *threadid){
-  bool proceed = true;
   char * temp_file_name;
   if ((temp_file_name = malloc(strlen(text_file_path) + 2)) == NULL) {
     return NULL;
@@ -360,37 +403,27 @@ void *autosave(void *threadid){
   strcpy(temp_file_name, text_file_path);
   strcat(temp_file_name, "~");
   
-	FILE * temp_file;
-  
-  char * line;
-  
-  int i, n;
+  int naps;
   // This function loops until told otherwise from the router thread. Each loop:
-	while (proceed) {
-    // Open the temporary file
-    temp_file = fopen(temp_file_name, "w+");
-    
-    // Read lines from the text buffer and save them to the temporary file
+	while (!game_over) {
     pthread_mutex_lock(&text_);
-    n = getLineLength();
-
-    for ( i = 0; i < n;  i++) {
-      getLine(i, &line);
-      
-      fwrite(line, strlen(line), sizeof(char), temp_file);
-      free(line);
-    }
+    save(temp_file_name);
     pthread_mutex_unlock(&text_);
-
     
-    // Close the temporary file and sleep for 5 sec.
-    fclose(temp_file);
-    sleep(5);
+    // Let's break the 5-second sleep into 5 "naps," to allow
+    // this thread the chance to wake up and check to see if the
+    // application has been terminated. We don't want to just cancel
+    // out of this thread without freeing the temp file name!
+    for (naps = 0; naps < 5 && !game_over; naps++) {
+      sleep(1);
+
+    }
   }
 	free(temp_file_name);
 }
 
 int main(int argc, char **argv){
+  game_over = false;
 	int error;
 	row = 0;
 	col = 0;
@@ -425,23 +458,32 @@ int main(int argc, char **argv){
   }
   
 	// Main loop until told otherwise
-	while (proceed) {
+  message * incoming_message;
+	while (!game_over ) {
     // Recieve messages from the message queue
-    message * incoming_message = pop();
+    incoming_message = pop();
     if (incoming_message != NULL) {
       putchar('\a');
       switch (incoming_message->command) {
         case EDIT:
           // If EDIT then place the edits into the text buffer
-          insert(incoming_message->row, incoming_message->col, incoming_message->data);
+          pthread_mutex_lock(&edit_);
+          edit_succeeded = insert(incoming_message->row, incoming_message->col, incoming_message->data);
+          pthread_cond_broadcast(&tried_edit);
+          pthread_mutex_unlock(&edit_);
           break;
           
         case SAVE:
           // If SAVE then save the file additionally delete the temporary save
+          pthread_mutex_lock(&text_);
+          save(text_file_path);
+          pthread_mutex_unlock(&text_);
+
           break;
         case QUIT:
           // If QUIT then quit the program and tell the appropriate threads to stop
-          proceed = false;
+          game_over = true;
+  
           break;
         case DEL:
           // If DEL then delete the specified character from the text buffer
@@ -457,16 +499,15 @@ int main(int argc, char **argv){
       }
 
     }
-    
-    
-    
-
   }
-  exit(0);
 	// Clean up data structures
   pthread_join(ui_thread, NULL);
   pthread_join(auto_save_thread, NULL);
+  deleteBuffer();
   free(text_file_path);
+  
+  exit(0);
+
 }
 
 
