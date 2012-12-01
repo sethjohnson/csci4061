@@ -57,23 +57,33 @@ void init_textbuff(char* file) {
  * @returns 0 if error occurs and 1 if successful
  */
 int appendLine(char* line) {
-  node * new_node = (node*)calloc(sizeof(node), 1);
-  if (new_node) {
-    new_node->data = (char*)calloc(sizeof(char), LINEMAX+1);
-    strcpy(new_node->data, line);
-    new_node->count = strlen(new_node->data);
-    new_node->next = NULL;
-    if (buffer.count == 0) {
-      buffer.first = new_node;
-    } else {
-      buffer.last->next = new_node;
+  node * last_node;
+  size_t existing_length = 0;
+  size_t line_length = strlen(line);
+  int i = 0;
+  if (getLineLength()) {
+    existing_length = strlen(buffer.last->data);
+    if (buffer.last->data[existing_length-1]!='\n') {
+      strncpy(buffer.last->data + existing_length, line, i +=LINEMAX - existing_length);
+      buffer.last->data[LINEMAX] = '\0';
+
+      //buffer.last->data[LINEMAX] = '\0';
     }
-    buffer.last = new_node;
-    
-    buffer.count++;
+
+//    last_node = getNode(getLineLength()-1);
+//    existing_length = strlen(last_node->data);
+//    memccpy(last_node->data+existing_length, line, i = fmin(LINEMAX - existing_length, line_length), sizeof(char));
+//    last_node->data[i+existing_length-1] = '\0';
+  }
+
+   if (i < line_length) {
+    return insertLine(getLineLength(), line+i);
+    } else {
     return 1;
-  } else
-    return 0;
+   }
+
+  
+
 }
 
 /**
@@ -86,11 +96,9 @@ int appendLine(char* line) {
  * @returns 0 if error occurs or 1 if successful
  */
 int getLine(int index, char** returnLine) {
-  node* temp;
+  
   if (index < buffer.count) {
-    
-    temp = getNode(index);
-    (*returnLine = temp->data);
+    *returnLine = strdup(getNode(index)->data);
     return 1;
 
   } else {
@@ -107,16 +115,16 @@ int getLine(int index, char** returnLine) {
  * @returns 0 if error occurs or 1 if successful
  */
 int insert(int row, int col, char text) {
-  char * line = NULL;
   char temp_up, temp_down;
-  int temp_row, temp_col;
   size_t line_length;
-  getLine(row, &line);
-  line_length = strlen(line);
+  node * temp;
 
-  if (getLine(row, &line) == 0 || (/*col>=strlen(line) && */col<LINEMAX) ) {
-    temp_down = line[col];
-    line[col] = text;
+  temp = getNode(row);
+  line_length = strlen(temp->data);
+  
+  if ((temp = getNode(row)) == 0 || (col<LINEMAX) ) {
+    temp_down = temp->data[col];
+    temp->data[col] = text;
   }
   bool completed = false;
   while (!completed) {
@@ -128,24 +136,24 @@ int insert(int row, int col, char text) {
       }
       col = 0;
       row++;
-      getLine(row, &line);
-      line_length = strlen(line);
+      temp = getNode(row);
+      line_length = strlen(temp->data);
     } else if (col >= line_length) {
-      line[col] = temp_down;
-      line[col+1] = '\0';
+      temp->data[col] = temp_down;
+      temp->data[col+1] = '\0';
       break;
     }
     
     if (row >= getLineLength()) {
       appendLine(malloc(LINEMAX+1));
-      getLine(row,&line);
-      line[col] = temp_down;
-      line[col+1] = '\0';
+      temp = getNode(row);
+      temp->data[col] = temp_down;
+      temp->data[col+1] = '\0';
       break;
     }
     
-    temp_up = line[col];
-    line[col] = temp_down;
+    temp_up = temp->data[col];
+    temp->data[col] = temp_down;
     temp_down = temp_up;
   }
 	return 1;
@@ -163,6 +171,26 @@ int getLineLength() {
  * @returns 0 if error otherwise returns 1
  */
 int deleteLine(int index) {
+  node * pre_node = NULL;
+  node * to_delete;
+  if (index >= 0  && index < buffer.count) {
+    if (index > 0) {
+      pre_node = getNode(index-1);
+      to_delete = pre_node->next;
+      pre_node->next = to_delete->next;
+      
+    } else {
+      to_delete = buffer.first;
+      buffer.first = to_delete->next;
+
+    }
+    buffer.count--;
+    free(to_delete->data);
+    free(to_delete);
+
+  }
+  
+  
 	return 0;
 }
 
@@ -172,7 +200,45 @@ int deleteLine(int index) {
  * @returns 0 if error otherwise returns 1
  */
 int deleteCharacter(int row, int col) {
-	return 0;
+  int row_to_delete = row, col_to_delete = col;
+  int row_to_grab, col_to_grab;
+  node * line_to_delete_from = getNode(row);
+  node * line_to_grab_from = line_to_delete_from;
+  char * to_delete;
+  char * next_char;
+  if (line_to_delete_from && strlen(line_to_delete_from->data) > col_to_delete) {
+    putchar('\a');
+    while (1) {
+//      to_delete = &line_to_delete_from->data[col];
+//      col_to_grab = col_to_delete + 1;
+//      row_to_grab = row_to_delete;
+//      next_char = &line_to_grab_from->data[col_to_grab];
+//      if (*next_char == '\0') {
+//        col_to_grab=0;
+//        row++;
+//        line_to_grab_from = line_to_grab_from->next;
+//        if (line_to_grab_from) {
+//          next_char = &line_to_grab_from->data[col];
+//          
+//        }
+//      }
+//
+//      
+//      *to_delete = *next_char;
+//      
+//      if ((*to_delete == '\n') ^ (row == getLineLength()-1 && *to_delete == '\0')) {
+//        *next_char = '\0';
+//        if (col == 0) {
+//          deleteLine(row);
+//        }
+//        break;
+//      }
+      break;
+    }
+
+  }
+  
+  return 1;
 }
 
 /**
@@ -193,6 +259,7 @@ int insertLine(int row, char* line) {
     strcpy(new_node->data, line);
     new_node->count = strlen(new_node->data);
     new_node->next = NULL;
+    
     if (row <= buffer.count) {
       if (buffer.count == 0) {
         buffer.first = new_node;
