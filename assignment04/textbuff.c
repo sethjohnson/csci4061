@@ -66,21 +66,14 @@ int appendLine(char* line) {
     if (buffer.last->data[existing_length-1]!='\n') {
       strncpy(buffer.last->data + existing_length, line, i +=LINEMAX - existing_length);
       buffer.last->data[LINEMAX] = '\0';
-
-      //buffer.last->data[LINEMAX] = '\0';
     }
-
-//    last_node = getNode(getLineLength()-1);
-//    existing_length = strlen(last_node->data);
-//    memccpy(last_node->data+existing_length, line, i = fmin(LINEMAX - existing_length, line_length), sizeof(char));
-//    last_node->data[i+existing_length-1] = '\0';
   }
 
-   if (i < line_length) {
+  if (i < line_length) {
     return insertLine(getLineLength(), line+i);
-    } else {
+  } else {
     return 1;
-   }
+  }
 
   
 
@@ -203,30 +196,100 @@ int deleteLine(int index) {
  * @returns 0 if error otherwise returns 1
  */
 int deleteCharacter(int row, int col) {
-  int row_to_delete = row, col_to_delete = col;
+  int row_to_delete = row;
+  int col_to_delete = col;
+  node * line_to_delete_from = getNode(row_to_delete);
+  size_t chomped;
+  size_t  current_line_length;
+  bool keep_going = true;
+  
   int row_to_grab, col_to_grab;
-  node * line_to_delete_from = getNode(row);
   node * line_to_grab_from = line_to_delete_from;
   char * to_delete;
   char * next_char;
+
   
-  col_to_grab = col_to_delete;
-  row_to_grab = row_to_delete;
-  if (line_to_delete_from && strlen(line_to_delete_from->data) > col_to_delete) {
+  if (line_to_delete_from && col_to_delete < (current_line_length = strlen(line_to_delete_from->data))) {
     
     
-    do  {
-      
-      to_delete = & line_to_delete_from->data[col_to_delete];
-      if (*to_delete == '\n') {
-        col_to_grab = 0;
-        row_to_grab = row_to_delete + 1;
+    if (line_to_delete_from->data[col_to_delete] != '\n') {
+      while (line_to_delete_from->data[col_to_delete] != '\n') {
+  
+        to_delete = &line_to_delete_from->data[col_to_delete];
+        col_to_grab = col_to_delete + 1;
+        row_to_grab = row_to_delete;
+        next_char = &line_to_grab_from->data[col_to_grab];
+        if (*next_char == '\0') {
+          col_to_grab=0;
+          row_to_grab++;
+          line_to_grab_from = line_to_grab_from->next;
+           if (line_to_grab_from) {
+             next_char = &line_to_grab_from->data[col];
+           }
+        }
+          *to_delete = *next_char;
+
+        
+        
+        col_to_delete = col_to_grab;
+        row_to_delete = row_to_grab;
+        line_to_delete_from = getNode(row_to_delete);
+        
+  
+      }
+      if (*next_char == '\n') {
+        
+        *next_char = '\0';
+        if (col_to_grab == 0) {
+          deleteLine(row_to_grab);
+        }
+
       }
     
-    } while (false);
+    } else {
+      while (line_to_delete_from->data[col_to_delete] == '\n' ) {
+        if (line_to_delete_from->next != NULL) {
+          strncpy(&line_to_delete_from->data[col_to_delete], line_to_delete_from->next->data,
+                  (chomped = LINEMAX - current_line_length+1));
+          
+          current_line_length = strlen(line_to_delete_from->data);
+          if (current_line_length < (LINEMAX )) {
+            deleteLine(row_to_delete + 1);
+            break;
+          } else {
+            line_to_delete_from = line_to_delete_from->next;
+            
+            strcpy(line_to_delete_from->data, line_to_delete_from->data+chomped);
+            row_to_delete++;
+            col_to_delete = strlen(line_to_delete_from->data);
+            if (line_to_delete_from->data[col_to_delete-1] == '\n') {
+              break;
+            }
+            line_to_delete_from->data[col_to_delete] = '\n';
+            line_to_delete_from->data[col_to_delete+1] = '\0';
+            current_line_length = strlen(line_to_delete_from->data);
+            
+          }
+          
+        } else {
+          // Deleting a new line on the last line
+          line_to_delete_from->data[col_to_delete] = '\0';
+          break;
+        }
+        
+      }
+
+    }
+
+        
+    return 1;
   }
+  else {
+    return 0;
+  }
+
   
-  return 1;
+
 }
 
 /**

@@ -463,7 +463,6 @@ int main(int argc, char **argv){
     // Recieve messages from the message queue
     incoming_message = pop();
     if (incoming_message != NULL) {
-      putchar('\a');
       switch (incoming_message->command) {
         case EDIT:
           // If EDIT then place the edits into the text buffer
