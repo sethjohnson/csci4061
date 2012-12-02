@@ -108,22 +108,22 @@ int getLine(int index, char** returnLine) {
  * @returns 0 if error occurs or 1 if successful
  */
 int insert(int row, int col, char text) {
-  char temp_up, temp_down;
+  char temp_up, to_put_down;
   size_t line_length;
   node * temp_node;
 
   temp_node = getNode(row);
-  
-  if ((temp_node = getNode(row)) != 0 &&  (col<(line_length = strlen(temp_node->data))) ) {
+  line_length = strlen(temp_node->data);
+  if (temp_node  &&  (col < line_length) ) {
     
 
-    temp_down = temp_node->data[col];
+    to_put_down = temp_node->data[col];
     temp_node->data[col] = text;
     
     while (true) {
       col++;
       if (col >= LINEMAX) {
-        if (temp_down == '\n') {
+        if (to_put_down == '\n') {
           insertLine(row+1, strdup("\n"));
           break;
         }
@@ -132,7 +132,7 @@ int insert(int row, int col, char text) {
         temp_node = getNode(row);
         line_length = strlen(temp_node->data);
       } else if (col >= line_length) {
-        temp_node->data[col] = temp_down;
+        temp_node->data[col] = to_put_down;
         temp_node->data[col+1] = '\0';
         break;
       }
@@ -140,14 +140,14 @@ int insert(int row, int col, char text) {
       if (row >= getLineLength()) {
         appendLine(malloc(LINEMAX+1));
         temp_node = getNode(row);
-        temp_node->data[col] = temp_down;
+        temp_node->data[col] = to_put_down;
         temp_node->data[col+1] = '\0';
         break;
       }
       
       temp_up = temp_node->data[col];
-      temp_node->data[col] = temp_down;
-      temp_down = temp_up;
+      temp_node->data[col] = to_put_down;
+      to_put_down = temp_up;
     }
   	return 1;
 
@@ -168,16 +168,21 @@ int getLineLength() {
  */
 int deleteLine(int index) {
   node * pre_node = NULL;
-  node * to_delete;
+  node * to_delete = NULL;
   if (index >= 0  && index < buffer.count) {
     if (index > 0) {
       pre_node = getNode(index-1);
       to_delete = pre_node->next;
       pre_node->next = to_delete->next;
+      if (to_delete == buffer.last) {
+        buffer.last = pre_node;
+      }
       
     } else {
+
       to_delete = buffer.first;
       buffer.first = to_delete->next;
+      
 
     }
     buffer.count--;
@@ -185,8 +190,6 @@ int deleteLine(int index) {
     free(to_delete);
 
   }
-  
-  
 	return 0;
 }
 
@@ -201,7 +204,6 @@ int deleteCharacter(int row, int col) {
   node * line_to_delete_from = getNode(row_to_delete);
   size_t chomped;
   size_t  current_line_length;
-  bool keep_going = true;
   
   int row_to_grab, col_to_grab;
   node * line_to_grab_from = line_to_delete_from;
@@ -213,7 +215,9 @@ int deleteCharacter(int row, int col) {
     
     
     if (line_to_delete_from->data[col_to_delete] != '\n') {
-      while (line_to_delete_from->data[col_to_delete] != '\n') {
+      // DELETING A NON-NEWLINE CHARACTER
+      while (line_to_delete_from && line_to_delete_from->data[col_to_delete] != '\n') {
+        // STOP WHEN THE CHARACTER TO BE DELETED IS A NEWLINE
   
         to_delete = &line_to_delete_from->data[col_to_delete];
         col_to_grab = col_to_delete + 1;
@@ -224,10 +228,10 @@ int deleteCharacter(int row, int col) {
           row_to_grab++;
           line_to_grab_from = line_to_grab_from->next;
            if (line_to_grab_from) {
-             next_char = &line_to_grab_from->data[col];
-           }
+             next_char = &line_to_grab_from->data[col_to_grab];
+           } 
         }
-          *to_delete = *next_char;
+        *to_delete = *next_char;
 
         
         
@@ -237,17 +241,18 @@ int deleteCharacter(int row, int col) {
         
   
       }
-      if (*next_char == '\n') {
+      //if (*next_char == '\n' || *next_char == '\0') {
         
         *next_char = '\0';
         if (col_to_grab == 0) {
           deleteLine(row_to_grab);
         }
 
-      }
+      //}
     
     } else {
       while (line_to_delete_from->data[col_to_delete] == '\n' ) {
+        // DELETING A NEWLINE -- SPECIAL CASE
         if (line_to_delete_from->next != NULL) {
           strncpy(&line_to_delete_from->data[col_to_delete], line_to_delete_from->next->data,
                   (chomped = LINEMAX - current_line_length+1));
@@ -297,7 +302,10 @@ int deleteCharacter(int row, int col) {
  * to -1 represinting that the buffer is invalid
  */
 void deleteBuffer() {
-	
+  int i;
+	for (i = getLineLength()-1; i >=0; i--) {
+    deleteLine(i);
+  }
 }
 
 

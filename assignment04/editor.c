@@ -159,9 +159,15 @@ int redraw(int min_line, int max_line,int r_, int c_, int insert_){
     pthread_mutex_unlock(&text_);
 
 		int j;
-		for(j=0;j < strlen(line);j++){
+		for(j=0;j < strlen(line)+1;j++){
       if (*(line+j) != '\n') {
-        addch(*(line+j));
+        if (*(line+j) != '\0') {
+          addch(*(line+j));
+        } else {
+          addch('%');
+
+        }
+
       } else {
         //display a character representing a new line
         addch('#');
@@ -195,43 +201,46 @@ void input_mode(){
 	refresh();
 	for(;;){
 		c = getch();
-		if(c == CTRL('D')){
-			break;
-		} else if (isprint(c)) {
-      int insert_row = row+view_min;
-      int insert_col = col;
-      
-      //Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
-      
-      pthread_mutex_lock(&edit_);
-      push(new_message(c, insert_row, insert_col, EDIT));
-      edit_succeeded = false;
-      pthread_cond_wait(&tried_edit, &edit_);
-      
-      if (edit_succeeded) {
-        if((col<COLS-1) && (col<LINEMAX-1)){
-          col++;
-        }else{
-          col = 0;
-          
-          
-          if(row < LINES - 2){
-            row++;
+    if (c != ERR) {
+      if(c == CTRL('D')){
+        break;
+      } else if (isprint(c)) {
+        int insert_row = row+view_min;
+        int insert_col = col;
+        
+        //Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
+        
+        pthread_mutex_lock(&edit_);
+        push(new_message(c, insert_row, insert_col, EDIT));
+        edit_succeeded = false;
+        pthread_cond_wait(&tried_edit, &edit_);
+        
+        if (edit_succeeded) {
+          if((col<COLS-1) && (col<LINEMAX-1)){
+            col++;
           }else{
-            view_min++;
-            view_max++;
+            col = 0;
+            
+            
+            if(row < LINES - 2){
+              row++;
+            }else{
+              view_min++;
+              view_max++;
+            }
           }
+          
+        } else {
+          // A character was not successfully inserted.
+          flash();
+          
         }
-
-      } else {
-        // A character was not successfully inserted.
-        flash();
-
+        pthread_mutex_unlock(&edit_);
+        // ------------------------------
+        
       }
-      pthread_mutex_unlock(&edit_);
-      // ------------------------------
-
     }
+		
 		
     redraw(view_min,view_max,row,col,1);
 	}
