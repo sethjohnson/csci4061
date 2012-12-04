@@ -93,6 +93,7 @@ int view_max;
 
 // The Text file name
 char * text_file_path;
+char * temp_file_name;
 
 // Global for termination
 bool game_over;
@@ -159,18 +160,14 @@ int redraw(int min_line, int max_line,int r_, int c_, int insert_){
     pthread_mutex_unlock(&text_);
 
 		int j;
-		for(j=0;j < strlen(line)+1;j++){
+		for(j=0;j < strlen(line);j++){
       if (*(line+j) != '\n') {
-        if (*(line+j) != '\0') {
           addch(*(line+j));
-        } else {
-          addch('%');
 
-        }
 
       } else {
         //display a character representing a new line
-        addch('#');
+        //addch('#');
 
       }
 		}
@@ -205,17 +202,20 @@ void input_mode(){
       if(c == CTRL('D')){
         break;
       } else if (isprint(c)) {
+        //Don't try to read in a control character that isn't printable!
         int insert_row = row+view_min;
         int insert_col = col;
         
-        //Add code here to insert c into textbuff at (insert_row, insert_col) using the message queue interface.
-        
+        //insert c into textbuff at (insert_row, insert_col) using the message queue interface.
+        //We want to check to see if character input is successful before we try to move the cursor
+        // one character forward. We have an edit lock for that.
         pthread_mutex_lock(&edit_);
         push(new_message(c, insert_row, insert_col, EDIT));
         edit_succeeded = false;
         pthread_cond_wait(&tried_edit, &edit_);
         
         if (edit_succeeded) {
+          // Then move the cursor one character forward
           if((col<COLS-1) && (col<LINEMAX-1)){
             col++;
           }else{
@@ -231,7 +231,7 @@ void input_mode(){
           }
           
         } else {
-          // A character was not successfully inserted.
+          // A character was not successfully inserted at this point.
           flash();
           
         }
@@ -311,7 +311,7 @@ void loop(){
           break;
         case 'd':
           del_row = row+view_min;
-          del_col = col;
+          del_col = col; // uncessary, but we'll pass it along just in case.
           // Delete the entire line
           push(new_message(1, del_row, del_col, DEL));
           redraw(view_min,view_max,row,col,0);
@@ -324,7 +324,6 @@ void loop(){
           // Add code here to delete character (del_row, del_col) from textbuf
           push(new_message(0, del_row, del_col, DEL));
           
-          // ------------------------------
           
           redraw(view_min,view_max,row,col,0);
           break;
@@ -334,14 +333,11 @@ void loop(){
           push(new_message(0, 0, 0, SAVE));
           
           
-          // ------------------------------
-          
           break;
         case 'q':
           
           // Add code here to quit the program
           push(new_message(0, 0, 0, QUIT));
-          // ------------------------------
           break;
         default:
           flash();
@@ -377,44 +373,55 @@ void *start_UI(void *threadid){
   return NULL;
 }
 
+/**
+ * Function to be used when saving or autosaving. Not Thread safe! 
+ * Lock when using!
+ */
 int save(const char * filename) {
+  bool failure = false;
   FILE * file_p;
   
   char * line;
   
-  int i, n;
+  int line_to_save, line_count;
   // This function loops until told otherwise from the router thread. Each loop:
     // Open the temporary file
-    file_p = fopen(filename, "w+");
-    
+  if((file_p = fopen(filename, "w+")) == NULL) {
+    failure = true;
+  } else {
     // Read lines from the text buffer and save them to the temporary file
-    n = getLineLength();
+    line_count = getLineLength();
     
-    for ( i = 0; i < n;  i++) {
-      getLine(i, &line);
+    for ( line_to_save = 0; line_to_save < line_count && !failure;  line_to_save++) {
+      if (!getLine(line_to_save, &line)) {
+        failure = true;
+        break; // Don't free the line! It was never allocated.
+      } else if(fwrite(line, strlen(line), sizeof(char), file_p) == 0){
+        failure = true;
+      }
       
-      fwrite(line, strlen(line), sizeof(char), file_p);
       free(line);
     }
     
     fclose(file_p);
 
+  }
+  
+  return !failure;
+  
+   
 }
 
 /**
  * Function to be used to spawn the autosave thread.
  */
 void *autosave(void *threadid){
-  char * temp_file_name;
-  if ((temp_file_name = malloc(strlen(text_file_path) + 2)) == NULL) {
-    return NULL;
-  }
-  strcpy(temp_file_name, text_file_path);
-  strcat(temp_file_name, "~");
+
   
   int naps;
   // This function loops until told otherwise from the router thread. Each loop:
 	while (!game_over) {
+    // Don't want to allow anyone else to modify the buffer while we're trying to save it!w
     pthread_mutex_lock(&text_);
     save(temp_file_name);
     pthread_mutex_unlock(&text_);
@@ -425,10 +432,10 @@ void *autosave(void *threadid){
     // out of this thread without freeing the temp file name!
     for (naps = 0; naps < 5 && !game_over; naps++) {
       sleep(1);
-
     }
   }
-	free(temp_file_name);
+  
+  return NULL;
 }
 
 int main(int argc, char **argv){
@@ -436,7 +443,7 @@ int main(int argc, char **argv){
 	int error;
 	row = 0;
 	col = 0;
-	bool proceed = true;
+	bool failure = false;
   // get text file from argv
   if (argc != 2) {
     // Bad input, display proper use!
@@ -460,6 +467,13 @@ int main(int argc, char **argv){
   }
   
 	// spawn auto-save thread
+  //    Set up temp file name
+  if ((temp_file_name = calloc(strlen(text_file_path) + 2, sizeof(char))) == NULL) {
+    return 0;
+  }
+  strcpy(temp_file_name, text_file_path);
+  strcat(temp_file_name, "~");
+  
   printf("Spawning auto-save thread...\n");
 	pthread_t auto_save_thread;
   if ((error = pthread_create(&auto_save_thread, NULL, autosave, (void*)&auto_save_thread))) {
@@ -474,19 +488,29 @@ int main(int argc, char **argv){
     if (incoming_message != NULL) {
       switch (incoming_message->command) {
         case EDIT:
-          // If EDIT then place the edits into the text buffer
+          // If EDIT then place the edits into the text buffer.
+          // The UI will be waiting to see if this succeeds using a cond var,
+          // So we need to make sure to let it know when we're done.
           pthread_mutex_lock(&edit_);
+          pthread_mutex_lock(&text_);
           edit_succeeded = insert(incoming_message->row, incoming_message->col, incoming_message->data);
+          pthread_mutex_unlock(&text_);
           pthread_cond_broadcast(&tried_edit);
           pthread_mutex_unlock(&edit_);
           break;
           
         case SAVE:
           // If SAVE then save the file additionally delete the temporary save
+          
+          // Lock the textBuffer ( this will prevent anything else from
+          // making changes to it during write. This will also delay
           pthread_mutex_lock(&text_);
           save(text_file_path);
           pthread_mutex_unlock(&text_);
-
+          
+          if( remove( temp_file_name ) != 0 )
+            fprintf(stderr,  "Error deleting autosave file!\n");
+          
           break;
         case QUIT:
           // If QUIT then quit the program and tell the appropriate threads to stop
@@ -496,10 +520,17 @@ int main(int argc, char **argv){
         case DEL:
           // If DEL then delete the specified character from the text buffer
           if (incoming_message->data == 0) {
+            // If the trivial data member of a DEL message is 0, delete a char.
+            pthread_mutex_lock(&text_);
             deleteCharacter(incoming_message->row, incoming_message->col);
-            
+            pthread_mutex_unlock(&text_);
+
           } else {
+            // Otherwise if it's 1, delete a whole line!
+            pthread_mutex_lock(&text_);
             deleteLine(incoming_message->row);
+            pthread_mutex_unlock(&text_);
+
           }
           break;
         default:
@@ -513,9 +544,9 @@ int main(int argc, char **argv){
   pthread_join(auto_save_thread, NULL);
   deleteBuffer();
   free(text_file_path);
+  free(temp_file_name);
   
-  exit(0);
-
+  return failure;
 }
 
 

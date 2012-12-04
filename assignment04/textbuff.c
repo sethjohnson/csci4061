@@ -57,7 +57,6 @@ void init_textbuff(char* file) {
  * @returns 0 if error occurs and 1 if successful
  */
 int appendLine(char* line) {
-  node * last_node;
   size_t existing_length = 0;
   size_t line_length = strlen(line);
   int i = 0;
@@ -113,8 +112,7 @@ int insert(int row, int col, char text) {
   node * temp_node;
 
   temp_node = getNode(row);
-  line_length = strlen(temp_node->data);
-  if (temp_node  &&  (col < line_length) ) {
+  if (temp_node  &&  (col < (  line_length = strlen(temp_node->data)) )) {
     
 
     to_put_down = temp_node->data[col];
@@ -130,7 +128,12 @@ int insert(int row, int col, char text) {
         col = 0;
         row++;
         temp_node = getNode(row);
-        line_length = strlen(temp_node->data);
+        if (temp_node) {
+          line_length = strlen(temp_node->data);
+        } else {
+          appendLine("");
+        }
+        
       } else if (col >= line_length) {
         temp_node->data[col] = to_put_down;
         temp_node->data[col+1] = '\0';
@@ -209,7 +212,7 @@ int deleteCharacter(int row, int col) {
   node * line_to_grab_from = line_to_delete_from;
   char * to_delete;
   char * next_char;
-
+  
   
   if (line_to_delete_from && col_to_delete < (current_line_length = strlen(line_to_delete_from->data))) {
     
@@ -218,7 +221,6 @@ int deleteCharacter(int row, int col) {
       // DELETING A NON-NEWLINE CHARACTER
       while (line_to_delete_from && line_to_delete_from->data[col_to_delete] != '\n') {
         // STOP WHEN THE CHARACTER TO BE DELETED IS A NEWLINE
-  
         to_delete = &line_to_delete_from->data[col_to_delete];
         col_to_grab = col_to_delete + 1;
         row_to_grab = row_to_delete;
@@ -227,29 +229,24 @@ int deleteCharacter(int row, int col) {
           col_to_grab=0;
           row_to_grab++;
           line_to_grab_from = line_to_grab_from->next;
-           if (line_to_grab_from) {
-             next_char = &line_to_grab_from->data[col_to_grab];
-           } 
+          if (line_to_grab_from) {
+            next_char = &line_to_grab_from->data[col_to_grab];
+          }
         }
         *to_delete = *next_char;
-
         
         
         col_to_delete = col_to_grab;
         row_to_delete = row_to_grab;
         line_to_delete_from = getNode(row_to_delete);
         
-  
-      }
-      //if (*next_char == '\n' || *next_char == '\0') {
         
-        *next_char = '\0';
-        if (col_to_grab == 0) {
-          deleteLine(row_to_grab);
-        }
-
-      //}
-    
+      }
+      *next_char = '\0';
+      if (col_to_grab == 0) {
+        deleteLine(row_to_grab);
+      }
+            
     } else {
       while (line_to_delete_from->data[col_to_delete] == '\n' ) {
         // DELETING A NEWLINE -- SPECIAL CASE
@@ -266,7 +263,7 @@ int deleteCharacter(int row, int col) {
             
             strcpy(line_to_delete_from->data, line_to_delete_from->data+chomped);
             row_to_delete++;
-            col_to_delete = strlen(line_to_delete_from->data);
+            col_to_delete = (int)strlen(line_to_delete_from->data);
             if (line_to_delete_from->data[col_to_delete-1] == '\n') {
               break;
             }
@@ -283,10 +280,10 @@ int deleteCharacter(int row, int col) {
         }
         
       }
-
+      
     }
-
-        
+    
+    
     return 1;
   }
   else {
@@ -306,6 +303,7 @@ void deleteBuffer() {
 	for (i = getLineLength()-1; i >=0; i--) {
     deleteLine(i);
   }
+  buffer.count = -1;
 }
 
 

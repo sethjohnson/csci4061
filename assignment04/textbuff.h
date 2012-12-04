@@ -5,6 +5,7 @@
 #include <string.h>
 #include <curses.h>
 #include <math.h>
+#include <ctype.h>
 
 // Maximum length of a line in the textbuffer
 #define LINEMAX 100
